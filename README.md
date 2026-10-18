@@ -333,7 +333,9 @@ pnpm --filter @ytm/desktop tauri build --bundles nsis
 
 This bundles the bridge and interface before compiling Rust. Output is under `target/release/bundle/`, with Windows NSIS packages under `target/release/bundle/nsis/`.
 
-Packages are unsigned unless the maintainer configures signing. The release workflow creates drafts for review; signing, macOS notarization, and signed automatic updates need a maintainer's own configuration. Existing installations update by running a newer installer.
+Packages are unsigned unless the maintainer configures signing. Pushing a new `vX.Y.Z` tag runs the full CI checks, builds Windows NSIS/MSI, macOS DMG, and Linux AppImage/DEB installers, verifies all five packages, and generates SHA-256 checksums. The release publishes automatically only after every job succeeds. Normal pushes to `main` do not publish releases. Signing, macOS notarization, and signed automatic updates need a maintainer's own configuration. Existing installations update by running a newer installer.
+
+To test packaging before tagging, run the **Release** workflow manually with **dry_run** enabled (the default). It uploads verified installers and checksums as workflow artifacts without creating a release. Publishing requires a stable version tag that matches the workspace and app versions; already published releases cannot be overwritten.
 
 ## Development and testing
 
@@ -405,7 +407,7 @@ Rust desktop core
 | `crates/protocol/`        | Rust wire types and TypeScript exporter                                                 |
 | `packages/protocol/`      | Generated TypeScript types                                                              |
 | `relay/`                  | Worker, room Durable Objects, invitation page, and runtime tests                        |
-| `.github/workflows/`      | Cross-platform checks and draft installer releases                                      |
+| `.github/workflows/`      | Cross-platform checks and automatic releases for verified version tags                  |
 | `docs/`                   | Screenshots, verification evidence, and feature audit                                   |
 
 The core sends serialized typed calls to the bridge. Catalog replies must match pending random request IDs. Tauri capabilities separate local windows from the remote page, and navigation checks use parsed origins/hosts.

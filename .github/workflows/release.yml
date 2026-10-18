@@ -3,23 +3,90 @@ on:
   push:
     tags: ['v*']
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and verify installers without publishing a release
+        type: boolean
+        default: true
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  metadata:
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      publish: ${{ steps.version.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate version and tag
+        id: version
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess, tomllib
+          from pathlib import Path
+
+          manifests = subprocess.check_output(['git', 'ls-files', '--', 'package.json', '*/package.json'], text=True).splitlines()
+          versions = {path: json.loads(Path(path).read_text())['version'] for path in manifests}
+          versions['Cargo.toml'] = tomllib.loads(Path('Cargo.toml').read_text())['workspace']['package']['version']
+          versions['tauri.conf.json'] = json.loads(Path('apps/desktop/src-tauri/tauri.conf.json').read_text())['version']
+          dry_run = os.environ['DRY_RUN'] == 'true'
+          tag = os.environ['GITHUB_REF_NAME'] if os.environ['GITHUB_REF_TYPE'] == 'tag' else 'v' + versions['package.json']
+          if not dry_run and os.environ['GITHUB_REF_TYPE'] != 'tag':
+              raise SystemExit('Publishing requires a version tag. Use dry_run to test a branch.')
+          if not re.fullmatch(r'v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)', tag):
+              raise SystemExit('Stable release tags must use vX.Y.Z.')
+          mismatches = {path: version for path, version in versions.items() if version != tag[1:]}
+          if mismatches:
+              raise SystemExit(f'Version mismatch for {tag}: {mismatches}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write(f'tag={tag}\npublish={str(not dry_run).lower()}\n')
+          print(f'Validated {tag}; publish={not dry_run}')
+          PY
+      - name: Protect published releases
+        if: steps.version.outputs.publish == 'true'
+        uses: actions/github-script@v7
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        with:
+          script: |
+            let release;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({
+                ...context.repo, tag: process.env.RELEASE_TAG,
+              })).data;
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            if (release && !release.draft) {
+              throw new Error('This version is already published. Create a new version tag.');
+            }
+  checks:
+    needs: metadata
+    uses: ./.github/workflows/ci.yml
   installers:
+    needs: [metadata, checks]
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows-latest
-            args: --bundles nsis,msi
+            bundles: nsis,msi
+            paths: |
+              target/release/bundle/nsis/*.exe
+              target/release/bundle/msi/*.msi
           - os: macos-latest
-            args: --bundles dmg
+            bundles: dmg
+            paths: target/release/bundle/dmg/*.dmg
           - os: ubuntu-24.04
-            args: --bundles appimage,deb
+            bundles: appimage,deb
+            paths: |
+              target/release/bundle/appimage/*.AppImage
+              target/release/bundle/deb/*.deb
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -33,17 +100,116 @@ jobs:
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf libasound2-dev
       - run: pnpm install --frozen-lockfile
-      - run: pnpm check
-      - run: pnpm test
-      - uses: tauri-apps/tauri-action@v0
+      - name: Build installers
+        run: pnpm --filter @ytm/desktop tauri build --ci --bundles ${{ matrix.bundles }} -- --locked
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+      - uses: actions/upload-artifact@v4
         with:
-          projectPath: apps/desktop
-          tauriScript: pnpm tauri
-          tagName: v__VERSION__
-          releaseName: YTM Listen v__VERSION__
-          releaseBody: 'Desktop companion for YouTube Music. These builds are unsigned; see README for installation and setup.'
-          releaseDraft: true
-          prerelease: false
-          args: ${{ matrix.args }}
+          name: installers-${{ matrix.os }}
+          path: ${{ matrix.paths }}
+          if-no-files-found: error
+          retention-days: 7
+  package:
+    needs: [metadata, installers]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: installers-*
+          path: installers
+      - name: Verify all installer formats and generate checksums
+        run: |
+          python3 - <<'PY'
+          import hashlib, shutil
+          from pathlib import Path
+
+          expected = {
+              'windows-latest': {'.exe', '.msi'},
+              'macos-latest': {'.dmg'},
+              'ubuntu-24.04': {'.AppImage', '.deb'},
+          }
+          destination = Path('release-assets')
+          destination.mkdir()
+          for platform, extensions in expected.items():
+              files = [path for path in Path(f'installers/installers-{platform}').rglob('*') if path.is_file()]
+              if len(files) != len(extensions) or {path.suffix for path in files} != extensions:
+                  raise SystemExit(f'Missing or unexpected installer formats for {platform}: {files}')
+              for path in files:
+                  name = path.name.replace(' ', '-')
+                  if not path.stat().st_size or (destination / name).exists():
+                      raise SystemExit(f'Empty or duplicate installer: {name}')
+                  shutil.copyfile(path, destination / name)
+          checksums = []
+          for path in sorted(destination.iterdir()):
+              with path.open('rb') as stream:
+                  digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+              checksums.append(f'{digest}  {path.name}\n')
+          (destination / 'SHA256SUMS.txt').write_text(''.join(checksums))
+          print('Verified all five installers and generated SHA256SUMS.txt')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-assets
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 7
+  publish:
+    needs: [metadata, checks, installers, package]
+    if: needs.metadata.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-assets
+          path: release-assets
+      - name: Publish complete release
+        uses: actions/github-script@v7
+        env:
+          RELEASE_TAG: ${{ needs.metadata.outputs.tag }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const crypto = require('node:crypto');
+            const tag = process.env.RELEASE_TAG;
+            let release;
+            try {
+              release = (await github.rest.repos.getReleaseByTag({ ...context.repo, tag })).data;
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
+            if (release && !release.draft) {
+              throw new Error('Refusing to overwrite an already published release.');
+            }
+            if (!release) {
+              const notes = (await github.rest.repos.generateReleaseNotes({ ...context.repo, tag_name: tag })).data;
+              release = (await github.rest.repos.createRelease({
+                ...context.repo, tag_name: tag, name: `YTM Listen ${tag}`, draft: true, prerelease: false,
+                body: 'Download an installer and verify it with SHA256SUMS.txt. These builds are unsigned. Windows is the verified development target; macOS and Linux still need native behavior testing. See README for setup.\n\n' + notes.body,
+              })).data;
+            }
+            const names = fs.readdirSync('release-assets').sort();
+            const previous = await github.paginate(github.rest.repos.listReleaseAssets, { ...context.repo, release_id: release.id });
+            if (previous.some(asset => !names.includes(asset.name))) {
+              throw new Error('The draft contains unexpected assets. Review it before retrying.');
+            }
+            for (const name of names) {
+              const existing = previous.find(asset => asset.name === name);
+              if (existing) await github.rest.repos.deleteReleaseAsset({ ...context.repo, asset_id: existing.id });
+              await github.rest.repos.uploadReleaseAsset({
+                ...context.repo, release_id: release.id, name, data: fs.readFileSync(`release-assets/${name}`),
+                headers: { 'content-type': 'application/octet-stream' },
+              });
+            }
+            const uploaded = await github.paginate(github.rest.repos.listReleaseAssets, { ...context.repo, release_id: release.id });
+            if (uploaded.length !== names.length || uploaded.some(asset => {
+              if (!names.includes(asset.name) || asset.size !== fs.statSync(`release-assets/${asset.name}`).size) return true;
+              const digest = 'sha256:' + crypto.createHash('sha256').update(fs.readFileSync(`release-assets/${asset.name}`)).digest('hex');
+              return asset.digest && asset.digest !== digest;
+            })) {
+              throw new Error('Uploaded assets do not match the verified installers. The release remains a draft.');
+            }
+            await github.rest.repos.updateRelease({ ...context.repo, release_id: release.id, draft: false, make_latest: 'true' });
+            core.notice(`Published YTM Listen ${tag}`);

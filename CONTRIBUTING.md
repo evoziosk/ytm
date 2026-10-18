@@ -30,7 +30,14 @@ Test relay changes in the real Workers runtime, not just a WebSocket mock.
 
 Update the workspace Cargo version, `tauri.conf.json`, and package.json versions
 together. Regenerate both lockfiles, run checks, then push a matching `vX.Y.Z`
-tag to your own repository. The release workflow creates a draft for review.
+tag to your own repository. The release workflow runs the complete CI checks,
+builds all five Windows/macOS/Linux installer formats, and verifies checksums.
+Only after every job passes does it publish the complete release automatically.
+Normal `main` pushes do not publish releases, and published versions cannot be
+overwritten. To test the installer builds before tagging, manually run the
+Release workflow with `dry_run` enabled (the default); packages are saved as
+workflow artifacts and no release is created. Manual publishing requires
+running the workflow against a matching stable version tag with `dry_run` off.
 Signing/notarization and a signed updater are intentionally not configured with
 placeholder credentials. A maintainer must supply their own signing identities
 and update hosting before enabling those features.
