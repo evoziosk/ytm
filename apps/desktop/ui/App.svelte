@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
+  import { version as appVersion } from '../package.json';
   import {
     AudioLines,
     ArrowUpRight,
@@ -449,7 +450,8 @@
           <p>No extra noise.<br />Just a better way to listen.</p>
         </div>
         <button class="about-link" onclick={() => (tab = 'about')}
-          ><CircleHelp size={16} /> About YTM Listen <span>0.3.2</span></button
+          ><CircleHelp size={16} /> About YTM Listen
+          <span>{appVersion}</span></button
         >
         <div class="build-label">
           <span class="status-dot"></span>{native
@@ -978,7 +980,7 @@
             <div>
               <div class="eyebrow">MADE FOR THE WAY YOU LISTEN</div>
               <h1>A little closer to the music<span class="mint">.</span></h1>
-              <p>YTM Listen · Version 0.3.2</p>
+              <p>YTM Listen · Version {appVersion}</p>
             </div>
             <span class="brand-mark big"><AudioLines size={34} /></span>
           </div>

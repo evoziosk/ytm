@@ -4,7 +4,7 @@
 
 YouTube Music runs in a background playback session. Browsing and playback controls live in the app's own interface, while your Google account and eligible YouTube Music Premium benefits remain part of your YouTube session.
 
-**Version:** 0.3.2 · **Primary platform:** Windows x64 · **License:** [MIT](LICENSE) · **Built with:** Tauri 2, Rust, Svelte 5, and Cloudflare Durable Objects
+**Version:** 0.3.3 · **Primary platform:** Windows x64 · **License:** [MIT](LICENSE) · **Built with:** Tauri 2, Rust, Svelte 5, and Cloudflare Durable Objects
 
 [Download for Windows](https://github.com/evoziosk/ytm/releases/latest) · [Screenshots](#screenshots) · [Features](#features) · [Build from source](#run-from-source) · [Report an issue](https://github.com/evoziosk/ytm/issues)
 
@@ -84,7 +84,7 @@ Control the main window's blur and inspect the stream quality reported by the ac
 3. Run `YTM-Listen_<version>_x64-setup.exe` and follow the installer.
 4. Open YTM Listen and search for a song.
 
-The current Windows release is [v0.3.2](https://github.com/evoziosk/ytm/releases/tag/v0.3.2). A SHA-256 checksum is included with the installer. Source builds write packages under `target/release/bundle/nsis/`; generated installers are distributed through Releases rather than committed with the source. Updates currently use manually installed releases.
+The latest published Windows installer is available from [GitHub Releases](https://github.com/evoziosk/ytm/releases/latest), with a SHA-256 checksum. Source builds write packages under `target/release/bundle/nsis/`; generated installers are distributed through Releases rather than committed with the source. Updates currently use manually installed releases.
 
 Windows uses the Microsoft Edge WebView2 runtime for playback. Source builds also require the development tools listed below. See [Tauri's system prerequisites](https://tauri.app/start/prerequisites/) for platform setup.
 
