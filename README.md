@@ -10,7 +10,7 @@ YouTube Music runs in a background playback session. Browsing and playback contr
 
 [![CI](https://github.com/evoziosk/ytm/actions/workflows/ci.yml/badge.svg)](https://github.com/evoziosk/ytm/actions/workflows/ci.yml)
 
-![YTM Listen YouTube Music desktop app on Windows, showing Home playlists, navigation, and the music player](docs/screenshots/ytm-listen-home-windows.jpg)
+![YTM Listen YouTube Music desktop app on Windows, showing electronic playlists, navigation, and player controls](docs/screenshots/ytm-listen-electronic-playlists-windows.jpg)
 
 ## Contents
 
