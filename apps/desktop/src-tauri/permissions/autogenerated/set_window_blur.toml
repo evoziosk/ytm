@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-set-window-blur"
+description = "Enables the set_window_blur command without any pre-configured scope."
+commands.allow = ["set_window_blur"]
+
+[[permission]]
+identifier = "deny-set-window-blur"
+description = "Denies the set_window_blur command without any pre-configured scope."
+commands.deny = ["set_window_blur"]

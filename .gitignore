@@ -1,0 +1,15 @@
+node_modules/
+dist/
+target/
+.wrangler/
+.svelte-kit/
+coverage/
+*.log
+.env
+.env.*
+!.env.example
+.toolchain/
+.smoke/
+apps/desktop/src-tauri/gen/
+apps/desktop/src-tauri/icons/android/
+apps/desktop/src-tauri/icons/ios/

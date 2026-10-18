@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-catalog-result"
+description = "Enables the catalog_result command without any pre-configured scope."
+commands.allow = ["catalog_result"]
+
+[[permission]]
+identifier = "deny-catalog-result"
+description = "Denies the catalog_result command without any pre-configured scope."
+commands.deny = ["catalog_result"]

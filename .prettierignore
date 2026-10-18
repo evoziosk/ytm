@@ -1,0 +1,8 @@
+node_modules
+.toolchain
+target
+**/dist
+**/gen
+pnpm-lock.yaml
+packages/protocol/src/generated.ts
+apps/desktop/src-tauri/icons

@@ -1,0 +1,11 @@
+{
+  "name": "@ytm/protocol",
+  "version": "0.3.2",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "@ytm/bridge",
+  "version": "0.3.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --format=iife --target=es2022 --outfile=dist/bridge.js",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ytm/protocol": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.27.0",
+    "jsdom": "^27.0.0",
+    "@types/node": "^24.0.0"
+  }
+}

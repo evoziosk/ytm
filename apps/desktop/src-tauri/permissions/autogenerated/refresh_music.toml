@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-refresh-music"
+description = "Enables the refresh_music command without any pre-configured scope."
+commands.allow = ["refresh_music"]
+
+[[permission]]
+identifier = "deny-refresh-music"
+description = "Denies the refresh_music command without any pre-configured scope."
+commands.deny = ["refresh_music"]

@@ -1,0 +1,9 @@
+{
+  "$schema": "../gen/schemas/remote-schema.json",
+  "identifier": "ytm-remote",
+  "description": "The remote playback service may only submit validated playback snapshots and replies to pending catalog requests.",
+  "local": false,
+  "windows": ["main"],
+  "remote": { "urls": ["https://music.youtube.com/*"] },
+  "permissions": ["allow-player-event", "allow-catalog-result"]
+}
