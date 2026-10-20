@@ -252,3 +252,23 @@ it('selects a host queue entry from Home and respects revoked queue permission',
   next.click();
   expect(call).not.toHaveBeenCalled();
 });
+
+it('offers native Google library authorization on Android without promising Premium playback', async () => {
+  await start();
+  flushSync(() =>
+    document
+      .querySelector<HTMLButtonElement>('.account-dropdown button')!
+      .click(),
+  );
+  const dialog = document.querySelector('[aria-labelledby="account-title"]')!;
+  expect(dialog.textContent).toContain('Connect your Google library.');
+  expect(dialog.textContent?.replace(/\s+/g, ' ')).toContain(
+    'does not enable signed-in Music Premium playback',
+  );
+  expect(dialog.textContent).not.toContain('separate account window');
+  const connect = [
+    ...dialog.querySelectorAll<HTMLButtonElement>('button'),
+  ].find((button) => button.textContent?.includes('Connect Google library'))!;
+  connect.click();
+  expect(call).toHaveBeenCalledWith('open_account');
+});

@@ -208,3 +208,34 @@ The packaged 0.3.2 executable repeated the Windows check successfully: one
 playback audio session reported `YTM Listen` with the expected icon. Real
 playback progressed, then paused before exit (code 0). The installer is
 `YTM Listen_0.3.2_x64-setup.exe` (3,483,924 bytes).
+
+## Android native Google library — 20 October 2026
+
+Implemented Google Play services authorization with native account selection and
+read-only YouTube playlist APIs. Kotlin owns authorization and Google API requests;
+tokens are not exposed to the playback page or Svelte. Android's guest playback
+account events cannot replace the native library account. The catalog routes
+library and native playlist IDs without depending on the playback WebView being
+signed in. Disconnect invalidates pending authorization/library results and requests
+Google grant revocation.
+
+Verification completed on Windows:
+
+- Android Kotlin compilation and three JVM library tests pass: own-playlist
+  pagination, duplicate entries/unavailable videos, and invalid browse IDs.
+- All 46 desktop/Svelte tests pass, including Android account-panel wording and
+  dispatch through the native account command. Svelte reports no errors or warnings.
+- Rust workspace Clippy and tests pass; 40 Rust tests pass and the explicitly
+  opt-in LAN multicast smoke test remains ignored.
+- Tauri cross-compiles the Android arm64 library and builds the debug APK. Android
+  SDK `apksigner` verifies the APK, and its manifest contains the non-exported native
+  authorization activity. Package: `io.ytmlisten.desktop`, version `0.4.0`/`4000`.
+- Local test signing SHA-1:
+  `63:5D:78:F8:19:99:BC:67:74:98:47:8D:1B:93:57:3C:43:E9:4D:F7`.
+
+No Android device was attached (`adb devices` was empty). The user does not yet
+have the required Google Cloud project/client. Successful live consent, account
+restoration, private-playlist access, revocation and device playback are therefore
+**not verified**. Follow [the setup and acceptance guide](android-google-sign-in.md).
+Authenticated Music/Premium playback remains outside this implementation: Google
+API authorization does not sign in the playback WebView.

@@ -446,7 +446,11 @@
     void action(async () => {
       await call('logout_account');
       accountOpen = false;
-      notify('Signing out of YouTube Music…');
+      notify(
+        mobile
+          ? 'Google library disconnected.'
+          : 'Signing out of YouTube Music…',
+      );
     });
   }
   const time = (seconds: number) =>
@@ -1508,25 +1512,35 @@
       <h2 id="account-title">
         {data.account.signed_in
           ? data.account.name || 'Your YouTube account'
-          : 'Bring your library along.'}
+          : mobile
+            ? 'Connect your Google library.'
+            : 'Bring your library along.'}
       </h2>
       <p>
-        {data.account.signed_in
-          ? 'Your music and playlists use this YouTube Music account.'
-          : 'Sign in to access the music and playlists saved to your YouTube account.'}
-        Search and public playback are available without signing in, subject to YouTube
-        availability.
+        {#if mobile}
+          Connect Google to browse your private YouTube playlists. Playback uses
+          a separate session; connecting your library does not enable signed-in
+          Music Premium playback.
+        {:else}
+          {data.account.signed_in
+            ? 'Your music and playlists use this YouTube Music account.'
+            : 'Sign in to access the music and playlists saved to your YouTube account.'}
+          Search and public playback are available without signing in, subject to
+          YouTube availability.
+        {/if}
       </p>
       {#if data.account_message}<div class="info-line">
           {data.account_message}
         </div>{/if}
       <div class="button-row">
         {#if data.account.signed_in}<button class="primary" onclick={logout}
-            >Sign out</button
+            >{mobile ? 'Disconnect Google' : 'Sign out'}</button
           >{:else}<button
             class="primary"
             onclick={() => action(() => call('open_account'))}
-            ><UserRound size={16} />Sign in with Google</button
+            ><UserRound size={16} />{mobile
+              ? 'Connect Google library'
+              : 'Sign in with Google'}</button
           >{/if}<button
           class="secondary"
           onclick={() =>
@@ -1539,10 +1553,16 @@
         >
       </div>
       <p class="account-help">
-        Google sign-in opens in a separate account window. No credentials are
-        entered into this application interface. If Google rejects the embedded
-        browser, that remains a compatibility blocker; repeatedly signing in
-        will not resolve it.
+        {#if mobile}
+          Google’s native account chooser handles authorization. Google Play
+          services is required. You can disconnect and revoke library access
+          here at any time.
+        {:else}
+          Google sign-in opens in a separate account window. No credentials are
+          entered into this application interface. If Google rejects the
+          embedded browser, that remains a compatibility blocker; repeatedly
+          signing in will not resolve it.
+        {/if}
       </p>
     </div>
   </div>

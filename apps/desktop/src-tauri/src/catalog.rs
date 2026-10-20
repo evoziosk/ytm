@@ -45,6 +45,27 @@ pub async fn query(
     core: &Core,
     request: CatalogRequest,
 ) -> Result<CatalogPage, String> {
+    if request.query.len() > 512
+        || request.continuation.len() > 32768
+        || matches!(request.kind, CatalogKind::Search) && request.query.trim().is_empty()
+        || matches!(request.kind, CatalogKind::Browse) && !valid_browse(&request.browse_id)
+    {
+        return Err("Invalid music request".into());
+    }
+    #[cfg(target_os = "android")]
+    if matches!(request.kind, CatalogKind::Library)
+        || matches!(request.kind, CatalogKind::Browse) && request.browse_id.starts_with("ytapi_")
+    {
+        let result = tauri_plugin_ytm_player::library_catalog(
+            app,
+            serde_json::to_value(&request).map_err(|e| e.to_string())?,
+        )?;
+        let page: CatalogPage = serde_json::from_value(result).map_err(|e| e.to_string())?;
+        if page.items.len() > 50 || page.items.iter().any(|item| !validate_item(item)) {
+            return Err("Invalid Google library response".into());
+        }
+        return Ok(page);
+    }
     for _ in 0..60 {
         if core.snapshot().bridge_connected {
             break;
@@ -56,13 +77,6 @@ pub async fn query(
             "The playback service has not loaded. Check your connection in Account, then retry."
                 .into(),
         );
-    }
-    if request.query.len() > 512
-        || request.continuation.len() > 32768
-        || matches!(request.kind, CatalogKind::Search) && request.query.trim().is_empty()
-        || matches!(request.kind, CatalogKind::Browse) && !valid_browse(&request.browse_id)
-    {
-        return Err("Invalid music request".into());
     }
     let id = {
         use rand::Rng;
@@ -126,6 +140,8 @@ pub(crate) fn accept_reply(
     core: &Core,
     reply: CatalogReply,
 ) -> Result<(), String> {
+    #[cfg(target_os = "android")]
+    let _ = app;
     if reply.id.len() != 32
         || reply.error.len() > 2048
         || reply.page.as_ref().is_some_and(|page| {
@@ -146,6 +162,7 @@ pub(crate) fn accept_reply(
         .remove(&reply.id)
         .ok_or("No pending request")?;
     let result = reply.page.ok_or(reply.error);
+    #[cfg(not(target_os = "android"))]
     if let Ok(page) = &result {
         core.data.write().expect("state lock").account_message = if page.signed_in {
             "Signed in to YouTube Music"

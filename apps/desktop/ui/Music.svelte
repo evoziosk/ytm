@@ -19,7 +19,7 @@
     Repeat,
     Repeat1,
   } from '@lucide/svelte';
-  import { call, native, type Snapshot } from './api';
+  import { call, native, mobile, type Snapshot } from './api';
   import { allowed, noDevice, queueEdit } from './playback-device';
   import type { CatalogKind, CatalogPage, MusicItem } from '@ytm/protocol';
   let {
@@ -419,7 +419,9 @@
         {view === 'queue'
           ? 'The soundtrack you have lined up.'
           : view === 'library'
-            ? 'Albums, playlists, and music saved to your YouTube account.'
+            ? mobile
+              ? 'Your YouTube playlists, connected through Google.'
+              : 'Albums, playlists, and music saved to your YouTube account.'
             : 'Search, discover, and play. Without leaving your listening space.'}
       </p>
     </div>

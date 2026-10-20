@@ -7,6 +7,7 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
   <application>
+    <activity android:name="io.ytmlisten.player.GoogleAccountActivity" android:exported="false" android:configChanges="orientation|screenSize|keyboardHidden" android:theme="@android:style/Theme.Material.NoActionBar" />
     <service android:name="io.ytmlisten.player.PlayerService" android:exported="false" android:stopWithTask="false" android:foregroundServiceType="mediaPlayback" />
   </application>
 </manifest>

@@ -44,22 +44,22 @@ Version 0.4.0 includes a Windows [virtual microphone preview](docs/virtual-micro
 
 ## Features
 
-| Feature                          | What you can do                                                                                                                                                                               |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **YouTube Music desktop player** | Browse Home, search for music, open albums and playlists, access your signed-in library, and control playback inside YTM Listen.                                                              |
-| **Song-first search**            | Prefer song recordings and audio playback, including eligible tracks paired with a music video. Keep video-only recordings when a matching song version is unavailable.                       |
-| **Premium audio quality**        | Request High through YouTube Music's own player and inspect the active stream's bitrate, quality, and account entitlement in Preferences.                                                     |
-| **Global popup search**          | Press `Ctrl+Shift+K` from another application, search for a song, select with the arrow keys, and press Enter to play.                                                                        |
-| **Discord Rich Presence**        | Share a Listening activity with song details, artwork, progress, and music or room buttons. Configure pause/idle hiding and artist/playlist blocklists.                                       |
-| **Listening rooms**              | Host or join a room with track, play/pause, and playback-position synchronization. Share an invitation and transfer the host role.                                                            |
-| **Queue controls**               | Select, reorder, and remove tracks; clear other tracks; shuffle the remaining queue; and switch repeat off, all, or one.                                                                      |
-| **Desktop integration**          | Use tray controls, configurable global shortcuts, native media controls, an always-on-top mini-player, launch at startup, and close to tray.                                                  |
-| **Optional window blur**         | Enable a translucent main window with native Windows desktop blur. The switch applies immediately and remembers your choice.                                                                  |
-| **Lyrics**                       | Look up plain or synchronized lyrics from LRCLIB, with timed highlighting when available.                                                                                                     |
-| **Windows audio identity**       | See YTM Listen's name and icon in the Windows volume mixer.                                                                                                                                   |
-| **Virtual microphone preview**   | Route local music and an optional physical microphone to an installed Windows virtual cable, with separate levels, meters, mute, peak protection, and tray controls.                          |
-| **Remote and group control**     | Control one host player from the installed app or a browser over LAN or an optional relay. Approve devices, manage permissions, and revoke pairing.                                           |
-| **Android feasibility build**    | Build the full app for Android, including installed remote control and a native playback service. Android Google sign-in is currently blocked; physical-device hosting acceptance is pending. |
+| Feature                          | What you can do                                                                                                                                                                                                                    |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **YouTube Music desktop player** | Browse Home, search for music, open albums and playlists, access your signed-in library, and control playback inside YTM Listen.                                                                                                   |
+| **Song-first search**            | Prefer song recordings and audio playback, including eligible tracks paired with a music video. Keep video-only recordings when a matching song version is unavailable.                                                            |
+| **Premium audio quality**        | Request High through YouTube Music's own player and inspect the active stream's bitrate, quality, and account entitlement in Preferences.                                                                                          |
+| **Global popup search**          | Press `Ctrl+Shift+K` from another application, search for a song, select with the arrow keys, and press Enter to play.                                                                                                             |
+| **Discord Rich Presence**        | Share a Listening activity with song details, artwork, progress, and music or room buttons. Configure pause/idle hiding and artist/playlist blocklists.                                                                            |
+| **Listening rooms**              | Host or join a room with track, play/pause, and playback-position synchronization. Share an invitation and transfer the host role.                                                                                                 |
+| **Queue controls**               | Select, reorder, and remove tracks; clear other tracks; shuffle the remaining queue; and switch repeat off, all, or one.                                                                                                           |
+| **Desktop integration**          | Use tray controls, configurable global shortcuts, native media controls, an always-on-top mini-player, launch at startup, and close to tray.                                                                                       |
+| **Optional window blur**         | Enable a translucent main window with native Windows desktop blur. The switch applies immediately and remembers your choice.                                                                                                       |
+| **Lyrics**                       | Look up plain or synchronized lyrics from LRCLIB, with timed highlighting when available.                                                                                                                                          |
+| **Windows audio identity**       | See YTM Listen's name and icon in the Windows volume mixer.                                                                                                                                                                        |
+| **Virtual microphone preview**   | Route local music and an optional physical microphone to an installed Windows virtual cable, with separate levels, meters, mute, peak protection, and tray controls.                                                               |
+| **Remote and group control**     | Control one host player from the installed app or a browser over LAN or an optional relay. Approve devices, manage permissions, and revoke pairing.                                                                                |
+| **Android feasibility build**    | Native remote control, a playback service, and experimental Google authorization for read-only YouTube playlists. OAuth registration and physical-device acceptance are required; authenticated Music playback remains unresolved. |
 
 Windows is the verified development target. macOS and Linux have build configuration in CI, but their native behavior still needs platform testing. Google sign-in and Premium playback have been confirmed working by the user. See the [verification notes](docs/verification.md) for test evidence and remaining manual checks.
 
@@ -306,9 +306,9 @@ End/disconnect the current mode explicitly before switching. LAN traffic is inte
 
 The full-app Android feasibility build shares the Svelte interface and control protocol, with a native foreground playback service, media-session controls, and QR scanning. Desktop tray, global shortcuts, Discord presence and Windows virtual-mic routing are unavailable on Android.
 
-**Android Google sign-in is currently blocked by Google's embedded-browser policy.** Account/library support and reliable background hosting are not accepted features. Remote control of an authenticated desktop host does not require Google sign-in on the Android controller. Physical-device checks for screen lock, calls, Bluetooth, service recovery and cross-device playback remain pending.
+**Android has an experimental native Google library connection.** Register an Android OAuth client for the APK's signing certificate to authorize read-only YouTube playlist browsing through Google Play services. See [Google library setup](docs/android-google-sign-in.md). This does not sign in the playback WebView or enable authenticated Music Premium playback. Live account/library and background-hosting acceptance still require a physical device. Remote control of an authenticated desktop host does not require Google sign-in on the Android controller.
 
-The Android workflow builds an arm64 feasibility APK as an artifact. Tagged releases also include this APK with an **experimental** filename and test signing key. Google sign-in is currently blocked, and physical-device acceptance is pending; use it to evaluate remote control and the interface. Production APK signing requires maintainer credentials and a recorded physical acceptance pass. See the [Android prerequisites and acceptance checklist](docs/shared-control.md#android-feasibility-build).
+The Android workflow builds an arm64 feasibility APK as an artifact. Tagged releases also include this APK with an **experimental** filename and test signing key. Native Google library access needs OAuth registration; authenticated Music playback and physical-device acceptance remain pending. Production APK signing requires maintainer credentials and a recorded physical acceptance pass. See the [Android prerequisites and acceptance checklist](docs/shared-control.md#android-feasibility-build).
 
 ## Lyrics
 
@@ -320,7 +320,7 @@ Lookup sends the track title, artist, and rounded duration to LRCLIB. Availabili
 
 | Data or service      | How it is used                                                                                                                                                                                         |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Google sign-in       | Handled in a persistent WebView account/playback profile. Cookies and authentication headers remain in that website session.                                                                           |
+| Google sign-in       | Desktop uses a persistent WebView account/playback profile. Android library authorization uses Google Play services; API tokens stay in native Kotlin and never enter the player website or Svelte UI. |
 | Local preferences    | Stored in Tauri's application data directory. Named profiles separate settings, browser storage, and window geometry.                                                                                  |
 | Account display name | Shown in the local menu. The catalog bridge returns the active name without the account email.                                                                                                         |
 | Discord activity     | Sent through local Discord IPC when configured and permitted by presence preferences.                                                                                                                  |
@@ -470,23 +470,23 @@ The core sends serialized typed calls to the bridge. Catalog replies must match 
 
 ## Troubleshooting
 
-| Problem                                       | What to check                                                                                                                                                                                    |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Library is empty after sign-in**            | Wait for the connection refresh, then refresh Your library. Check the active account or use Refresh connection in the account controls.                                                          |
-| **Google rejects the account window**         | Record the error and version. Authentication availability is controlled by Google; avoid repeatedly signing in or copying account cookies as a workaround.                                       |
-| **Quality shows Normal**                      | Check the active Premium entitlement, whether High was requested, and the available recording. Preferences reports the format actually playing.                                                  |
-| **A shortcut does nothing**                   | Check conflicting apps or a second YTM Listen instance. Change or clear the combination in Keyboard shortcuts and save.                                                                          |
-| **Discord is not connected**                  | Enter a public Application ID, enable presence, and run the Discord desktop client. Discord controls final activity visibility.                                                                  |
-| **Friends cannot find the room**              | Use the same relay origin and correct code. Confirm the host is connected. A restarted host should create a new room.                                                                            |
-| **Playback controls are locked**              | Room members follow their host. Leave the room to choose your own music.                                                                                                                         |
-| **Music continues after closing**             | Close to tray is enabled. Reopen from the tray or choose Quit YTM Listen.                                                                                                                        |
-| **Windows still shows an Edge mixer entry**   | Update to 0.3.2 or newer, fully quit the old process, open the updated app, and play a song. Audio identity is refreshed periodically.                                                           |
-| **Lyrics are missing or mismatched**          | Retry for the current recording. Lyrics depend on LRCLIB's catalog and track metadata.                                                                                                           |
-| **A package command differs from PowerShell** | Check pnpm is on PATH and the process PATH has no unmatched quote.                                                                                                                               |
-| **No virtual microphone is available**        | Install a compatible virtual cable, restart if required, and refresh devices. Select its playback input in YTM Listen and recording output in the receiving app.                                 |
-| **Shared music is suppressed or quiet**       | Check player mute/volume, source gains, the receiving app's selected input, noise suppression and channel bitrate.                                                                               |
-| **A remote host is missing**                  | Ensure sharing is enabled, both devices can reach the selected LAN address, and the host allows TCP 9863/UDP 5353. Use a QR/full invitation or manual address if multicast discovery is blocked. |
-| **Android Google sign-in is rejected**        | This is a known embedded-browser blocker. Use Android as a controller for a signed-in desktop host; Android account/library support remains incomplete.                                          |
+| Problem                                       | What to check                                                                                                                                                                                                                                                   |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Library is empty after sign-in**            | Wait for the connection refresh, then refresh Your library. Check the active account or use Refresh connection in the account controls.                                                                                                                         |
+| **Google rejects the account window**         | Record the error and version. Authentication availability is controlled by Google; avoid repeatedly signing in or copying account cookies as a workaround.                                                                                                      |
+| **Quality shows Normal**                      | Check the active Premium entitlement, whether High was requested, and the available recording. Preferences reports the format actually playing.                                                                                                                 |
+| **A shortcut does nothing**                   | Check conflicting apps or a second YTM Listen instance. Change or clear the combination in Keyboard shortcuts and save.                                                                                                                                         |
+| **Discord is not connected**                  | Enter a public Application ID, enable presence, and run the Discord desktop client. Discord controls final activity visibility.                                                                                                                                 |
+| **Friends cannot find the room**              | Use the same relay origin and correct code. Confirm the host is connected. A restarted host should create a new room.                                                                                                                                           |
+| **Playback controls are locked**              | Room members follow their host. Leave the room to choose your own music.                                                                                                                                                                                        |
+| **Music continues after closing**             | Close to tray is enabled. Reopen from the tray or choose Quit YTM Listen.                                                                                                                                                                                       |
+| **Windows still shows an Edge mixer entry**   | Update to 0.3.2 or newer, fully quit the old process, open the updated app, and play a song. Audio identity is refreshed periodically.                                                                                                                          |
+| **Lyrics are missing or mismatched**          | Retry for the current recording. Lyrics depend on LRCLIB's catalog and track metadata.                                                                                                                                                                          |
+| **A package command differs from PowerShell** | Check pnpm is on PATH and the process PATH has no unmatched quote.                                                                                                                                                                                              |
+| **No virtual microphone is available**        | Install a compatible virtual cable, restart if required, and refresh devices. Select its playback input in YTM Listen and recording output in the receiving app.                                                                                                |
+| **Shared music is suppressed or quiet**       | Check player mute/volume, source gains, the receiving app's selected input, noise suppression and channel bitrate.                                                                                                                                              |
+| **A remote host is missing**                  | Ensure sharing is enabled, both devices can reach the selected LAN address, and the host allows TCP 9863/UDP 5353. Use a QR/full invitation or manual address if multicast discovery is blocked.                                                                |
+| **Android Google connection is rejected**     | Register the APK's package and signing SHA-1 as an Android OAuth client, enable YouTube Data API v3, and add your consent-screen test user. The connection dialog can copy the exact setup details. See [Android Google setup](docs/android-google-sign-in.md). |
 
 Report the version, OS, steps, and visible error in [GitHub Issues](https://github.com/evoziosk/ytm/issues). Use a separate development profile where possible. Do not include passwords, cookies, authorization headers, or room reconnect credentials.
 
@@ -502,7 +502,7 @@ Public search/playback can work where YouTube permits it. Personal library acces
 
 ### Does choosing a song open YouTube in my browser?
 
-Browsing and controls stay in YTM Listen. YouTube Music's player runs in a hidden WebView. Google sign-in opens a separate account window.
+Browsing and controls stay in YTM Listen. YouTube Music's player runs in a hidden WebView. Desktop Google sign-in opens a separate account window. Android's native Google library connection authorizes playlist APIs separately from playback.
 
 ### Can I download music or listen offline?
 
@@ -539,7 +539,7 @@ Next priorities focus on everyday listening:
 - **Automatic lyrics** lookup, caching, and better version matching.
 - **Faster queue editing**, shortcut recording/conflict feedback, and pasted music links.
 - **Virtual-mic hardware acceptance**, optional music ducking/monitoring, and a future driver-distribution decision.
-- **Android account/playback design** that supports Google's sign-in policy, followed by physical-device background-hosting acceptance.
+- **Android native library acceptance and authenticated playback design**, followed by physical-device background-hosting acceptance.
 
 These are recommendations, not completed features. See the [feature audit](docs/feature-audit.md) for priorities and gaps. Notifications, scrobbling, and signed automatic updates are also deferred.
 

@@ -155,6 +155,8 @@ class PlayerService: Service() {
                 val args = body.optJSONObject("args") ?: return@addWebMessageListener
                 if (kind == "player_event") {
                     val event = args.getJSONObject("event")
+                    // Native Google authorization is independent of the guest playback WebView.
+                    if (event.optString("type") == "account") return@addWebMessageListener
                     channel?.send(JSObject().put("kind", kind).put("payload", event))
                     if (!remoteActive) event.optJSONObject("state")?.let { update(it) }
                 } else if (kind == "catalog_result") channel?.send(JSObject().put("kind", kind).put("payload", args.getJSONObject("reply")))

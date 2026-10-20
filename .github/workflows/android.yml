@@ -70,6 +70,9 @@ jobs:
           YTM_ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
           YTM_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           YTM_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      - name: Test native Google library adapter
+        working-directory: apps/desktop/src-tauri/gen/android
+        run: ./gradlew :tauri-plugin-ytm-player:testDebugUnitTest --no-daemon
       - uses: actions/upload-artifact@v4
         with:
           name: ytm-listen-android-${{ inputs.release && 'signed' || 'feasibility' }}-arm64

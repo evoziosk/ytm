@@ -2,10 +2,8 @@ package io.ytmlisten.player
 
 import android.Manifest
 import android.app.Activity
-import android.app.Dialog
 import android.content.Intent
 import android.os.Build
-import android.view.ViewGroup
 import app.tauri.annotation.Command
 import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.TauriPlugin
@@ -45,6 +43,7 @@ class PlayerPlugin(private val activity: Activity): Plugin(activity) {
                 activity.requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 7341)
             }
             ContextCompat.startForegroundService(activity, Intent(activity, PlayerService::class.java))
+            GoogleLibraryAccount.initialize(activity, args.handler)
             invoke.resolve()
         }
     }
@@ -66,15 +65,24 @@ class PlayerPlugin(private val activity: Activity): Plugin(activity) {
     }
     @Command fun account(invoke: Invoke) {
         activity.runOnUiThread {
-            val view = PlayerService.instance?.player
-            if (view == null) { invoke.reject("Player service is not ready"); return@runOnUiThread }
-            (view.parent as? ViewGroup)?.removeView(view)
-            val dialog = Dialog(activity, android.R.style.Theme_Material_NoActionBar)
-            dialog.setContentView(view)
-            dialog.setOnDismissListener { (view.parent as? ViewGroup)?.removeView(view) }
-            dialog.show()
-            dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            activity.startActivity(Intent(activity, GoogleAccountActivity::class.java))
             invoke.resolve()
+        }
+    }
+    @Command fun disconnectAccount(invoke: Invoke) {
+        activity.runOnUiThread {
+            GoogleLibraryAccount.disconnect(activity) { error ->
+                if (error == null) invoke.resolve() else invoke.reject(error)
+            }
+        }
+    }
+    @Command fun libraryCatalog(invoke: Invoke) {
+        val request = invoke.getArgs().getJSONObject("request")
+        activity.runOnUiThread {
+            GoogleLibraryAccount.library(activity, request) { page, error ->
+                if (page != null) invoke.resolve(app.tauri.plugin.JSObject(page.toString()))
+                else invoke.reject(error ?: "Could not load your Google library")
+            }
         }
     }
 }

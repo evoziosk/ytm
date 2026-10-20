@@ -1,4 +1,4 @@
-//! Native Android session adapter. No Google credentials leave the service WebView.
+//! Native Android playback and Google library adapter. OAuth tokens remain in Kotlin.
 #[cfg(target_os = "android")]
 use tauri::{
     plugin::{Builder, PluginHandle, TauriPlugin},
@@ -48,6 +48,23 @@ pub fn account(app: &AppHandle) -> Result<(), String> {
     app.state::<Player>()
         .0
         .run_mobile_plugin::<()>("account", ())
+        .map_err(|e| e.to_string())
+}
+#[cfg(target_os = "android")]
+pub fn disconnect_account(app: &AppHandle) -> Result<(), String> {
+    app.state::<Player>()
+        .0
+        .run_mobile_plugin::<()>("disconnectAccount", ())
+        .map_err(|e| e.to_string())
+}
+#[cfg(target_os = "android")]
+pub fn library_catalog(
+    app: &AppHandle,
+    request: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    app.state::<Player>()
+        .0
+        .run_mobile_plugin("libraryCatalog", serde_json::json!({"request": request}))
         .map_err(|e| e.to_string())
 }
 #[cfg(target_os = "android")]

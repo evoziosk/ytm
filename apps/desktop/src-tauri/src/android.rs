@@ -12,6 +12,26 @@ pub fn create_main(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
             if let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) {
                 let core = handle.state::<Core>();
                 let result = match value["kind"].as_str() {
+                    Some("google_library_account") => {
+                        let payload = &value["payload"];
+                        let status =
+                            serde_json::from_value::<ytm_protocol::AccountStatus>(payload.clone())
+                                .map_err(|e| e.to_string());
+                        status.and_then(|status| {
+                            crate::commands::accept_event(
+                                &handle,
+                                &core,
+                                ytm_protocol::PlayerEvent::Account { status },
+                            )?;
+                            let message = payload["message"].as_str().unwrap_or("");
+                            if message.len() <= 2048 {
+                                core.data.write().expect("state lock").account_message =
+                                    message.into();
+                                core.emit(&handle);
+                            }
+                            Ok(())
+                        })
+                    }
                     Some("player_event") => serde_json::from_value(value["payload"].clone())
                         .map_err(|e| e.to_string())
                         .and_then(|event| crate::commands::accept_event(&handle, &core, event)),
@@ -61,8 +81,7 @@ pub fn open_account(app: &AppHandle) -> Result<(), String> {
     tauri_plugin_ytm_player::account(app)
 }
 pub fn logout_account(app: &AppHandle) -> Result<(), String> {
-    tauri_plugin_ytm_player::navigate(app, "https://music.youtube.com/logout")?;
-    open_account(app)
+    tauri_plugin_ytm_player::disconnect_account(app)
 }
 pub fn set_app_blur(_app: &AppHandle, enabled: bool) -> Result<(), String> {
     if enabled {

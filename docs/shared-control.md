@@ -40,7 +40,7 @@ Mutations share the host's asynchronous lock with local playback and queue edits
 
 ## Android feasibility build
 
-Android is part of the full app: the same Svelte library/player, LAN host, relay host, and installed controller code are used. Desktop tray, shortcuts, Discord, window blur and mini-player modules/dependencies are excluded from Android. The native plugin in `crates/android-player` owns a YouTube Music WebView in a foreground media-playback service, an origin-scoped WebMessage bridge, notification/media-session controls, audio focus, a playback wake lock, and audio-output-disconnect handling. Sign-in uses the same WebView session in an account dialog. Audio stays on the selected system output; no audio URL extraction or controller streaming is used. Windows monitors the player's active audio endpoints and pauses if an endpoint disappears.
+Android is part of the full app: the same Svelte library/player, LAN host, relay host, and installed controller code are used. Desktop tray, shortcuts, Discord, window blur and mini-player modules/dependencies are excluded from Android. The native plugin in `crates/android-player` owns a YouTube Music WebView in a foreground media-playback service, an origin-scoped WebMessage bridge, notification/media-session controls, audio focus, a playback wake lock, and audio-output-disconnect handling. Google library authorization now uses a native Google Play services activity; OAuth tokens never enter the playback WebView or Svelte interface. Audio stays on the selected system output; no audio URL extraction or controller streaming is used. Windows monitors the player's active audio endpoints and pauses if an endpoint disappears.
 
 Use JDK 17+, Android SDK/platform 36, NDK 28.2.13676358, and the Rust Android target:
 
@@ -53,7 +53,7 @@ Set `ANDROID_HOME` and `NDK_HOME` for your machine. The checked-in Android proje
 
 **Android hosting is not accepted until the physical-device checks below pass.** A cross-compiled library or APK does not establish successful Google sign-in, background WebView behavior or uninterrupted playback. This implementation session had an SDK but `adb devices` reported no device. No locked-screen or cross-device pass is claimed.
 
-Device testing of the initial release found that Google rejects sign-in with a “browser not secure” message. The embedded WebView account flow is a known blocker for Android account/library support. External browser sign-in does not populate the service WebView's cookie store; changing the user-agent is not a supported authentication solution. Android remote control of an authenticated desktop host does not require Android Google sign-in. Full Android account support remains incomplete pending an authentication/playback design that supports Google's browser policy.
+Device testing of the initial release found that Google rejects embedded sign-in with a “browser not secure” message. Android now requests native Google authorization for read-only playlist APIs, with APK-specific OAuth registration and physical acceptance still required. Follow [Android Google library setup](android-google-sign-in.md). External browser sign-in does not populate the service WebView's cookie store; authenticated Music playback remains unresolved. Android remote control of an authenticated desktop host does not require Android Google sign-in.
 
 Record device model, Android/WebView versions, network, build SHA, elapsed lock time, and observed results for:
 
