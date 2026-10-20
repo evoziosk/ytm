@@ -4762,7 +4762,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-ytm-player"
-version = "0.3.3"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -6323,7 +6323,7 @@ dependencies = [
 
 [[package]]
 name = "ytm-control"
-version = "0.3.3"
+version = "0.4.0"
 dependencies = [
  "rand 0.9.5",
  "serde",
@@ -6334,7 +6334,7 @@ dependencies = [
 
 [[package]]
 name = "ytm-listen"
-version = "0.3.3"
+version = "0.4.0"
 dependencies = [
  "axum",
  "discord-rich-presence",
@@ -6372,7 +6372,7 @@ dependencies = [
 
 [[package]]
 name = "ytm-protocol"
-version = "0.3.3"
+version = "0.4.0"
 dependencies = [
  "serde",
  "serde_json",

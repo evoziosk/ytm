@@ -4,13 +4,13 @@
 
 YouTube Music runs in a background playback session. Browsing and playback controls live in the app's own interface, while your Google account and eligible YouTube Music Premium benefits remain part of your YouTube session.
 
-**Version:** 0.3.3 · **Primary platform:** Windows x64 · **License:** [MIT](LICENSE) · **Built with:** Tauri 2, Rust, Svelte 5, and Cloudflare Durable Objects
+**Version:** 0.4.0 · **Primary platform:** Windows x64 · **License:** [MIT](LICENSE) · **Built with:** Tauri 2, Rust, Svelte 5, and Cloudflare Durable Objects
 
 Remote and group control now share one host player over LAN or the Cloudflare relay, with browser and installed controllers, approval, permissions and revocable device pairing. The full-app Android feasibility build includes the native playback service; physical-device acceptance is still required before Android hosting is considered supported. See [shared control, deployment and Android validation](docs/shared-control.md).
 
 [Download for Windows](https://github.com/evoziosk/ytm/releases/latest) · [Screenshots](#screenshots) · [Features](#features) · [Build from source](#run-from-source) · [Report an issue](https://github.com/evoziosk/ytm/issues)
 
-Windows development builds include [virtual microphone routing](docs/virtual-microphone.md): share the local player's music and optionally mix in a physical microphone using an installed virtual audio cable. This feature is not included in the previously published v0.3.3 installer.
+Version 0.4.0 includes a Windows [virtual microphone preview](docs/virtual-microphone.md): share the local player's music and optionally mix in a physical microphone using an installed virtual audio cable.
 
 [![CI](https://github.com/evoziosk/ytm/actions/workflows/ci.yml/badge.svg)](https://github.com/evoziosk/ytm/actions/workflows/ci.yml)
 
@@ -162,7 +162,7 @@ Premium features require the appropriate YouTube Music subscription. Delivered q
 
 ## Virtual microphone: music and voice
 
-Windows source builds include a **Virtual microphone** page for sending this computer's music, optionally mixed with your physical microphone, to Discord, OBS, or another audio application. The previously published v0.3.3 installer does not contain this preview.
+Windows builds from version 0.4.0 include a **Virtual microphone** page for sending this computer's music, optionally mixed with your physical microphone, to Discord, OBS, or another audio application.
 
 1. Install [VB-CABLE from VB-Audio](https://vb-audio.com/Cable/) if a compatible virtual cable is not already installed. Follow the vendor's administrator/restart instructions; VB-CABLE is donationware.
 2. Open **Virtual microphone**, refresh devices, and select the cable's **playback input**, usually **CABLE Input**.
@@ -308,7 +308,7 @@ The full-app Android feasibility build shares the Svelte interface and control p
 
 **Android Google sign-in is currently blocked by Google's embedded-browser policy.** Account/library support and reliable background hosting are not accepted features. Remote control of an authenticated desktop host does not require Google sign-in on the Android controller. Physical-device checks for screen lock, calls, Bluetooth, service recovery and cross-device playback remain pending.
 
-The Android workflow builds an arm64 feasibility APK as an artifact. It does not publish an Android release; signed APK builds require maintainer credentials and a recorded physical acceptance pass. See the [Android prerequisites and acceptance checklist](docs/shared-control.md#android-feasibility-build).
+The Android workflow builds an arm64 feasibility APK as an artifact. Tagged releases also include this APK with an **experimental** filename and test signing key. Google sign-in is currently blocked, and physical-device acceptance is pending; use it to evaluate remote control and the interface. Production APK signing requires maintainer credentials and a recorded physical acceptance pass. See the [Android prerequisites and acceptance checklist](docs/shared-control.md#android-feasibility-build).
 
 ## Lyrics
 
@@ -380,7 +380,7 @@ pnpm --filter @ytm/desktop tauri build --bundles nsis
 
 This bundles the bridge and interface before compiling Rust. Output is under `target/release/bundle/`, with Windows NSIS packages under `target/release/bundle/nsis/`.
 
-Packages are unsigned unless the maintainer configures signing. Pushing a new `vX.Y.Z` tag runs the full CI checks, builds Windows NSIS/MSI, macOS DMG, and Linux AppImage/DEB installers, verifies all five packages, and generates SHA-256 checksums. The release publishes automatically only after every job succeeds. Normal pushes to `main` do not publish releases. Signing, macOS notarization, and signed automatic updates need a maintainer's own configuration. Existing installations update by running a newer installer.
+Desktop packages are unsigned unless the maintainer configures signing. Pushing a new `vX.Y.Z` tag runs the full CI checks, builds Windows NSIS/MSI, macOS DMG, and Linux AppImage/DEB installers, and includes the experimental Android arm64 test APK. It verifies all six packages and generates SHA-256 checksums. The release publishes automatically only after every job succeeds. Normal pushes to `main` do not publish releases. Production signing, macOS notarization, and signed automatic updates need a maintainer's own configuration. Existing installations update by running a newer installer.
 
 To test packaging before tagging, run the **Release** workflow manually with **dry_run** enabled (the default). It uploads verified installers and checksums as workflow artifacts without creating a release. Publishing requires a stable version tag that matches the workspace and app versions; already published releases cannot be overwritten.
 

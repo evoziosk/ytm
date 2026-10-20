@@ -31,7 +31,9 @@ Test relay changes in the real Workers runtime, not just a WebSocket mock.
 Update the workspace Cargo version, `tauri.conf.json`, and package.json versions
 together. Regenerate both lockfiles, run checks, then push a matching `vX.Y.Z`
 tag to your own repository. The release workflow runs the complete CI checks,
-builds all five Windows/macOS/Linux installer formats, and verifies checksums.
+builds all five Windows/macOS/Linux installer formats, includes the experimental
+Android arm64 test APK, and verifies checksums. Add version-specific release notes
+in `docs/releases/vX.Y.Z.md` when preparing a version.
 Only after every job passes does it publish the complete release automatically.
 Normal `main` pushes do not publish releases, and published versions cannot be
 overwritten. To test the installer builds before tagging, manually run the

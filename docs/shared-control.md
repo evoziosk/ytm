@@ -66,7 +66,7 @@ Record device model, Android/WebView versions, network, build SHA, elapsed lock 
 - Wi-Fi changes, relay reconnection, host loss, ten-minute expiry, service/process death and a fresh group session after restart.
 - Permission denial for notifications, outdated WebView, failed sign-in, service startup errors and explicit disconnect/end sharing.
 
-Release APK signing uses maintainer-provided `YTM_ANDROID_KEYSTORE`, `YTM_ANDROID_STORE_PASSWORD`, `YTM_ANDROID_KEY_ALIAS`, and `YTM_ANDROID_KEY_PASSWORD`. The Android workflow's release option requires `ANDROID_ACCEPTANCE_PASSED=true` and the corresponding `ANDROID_*` repository secrets, including `ANDROID_KEYSTORE_BASE64`. It uploads a signed APK artifact; it does not publish a release. No signing credentials are included in source, and debug builds do not require them.
+Production APK signing uses maintainer-provided `YTM_ANDROID_KEYSTORE`, `YTM_ANDROID_STORE_PASSWORD`, `YTM_ANDROID_KEY_ALIAS`, and `YTM_ANDROID_KEY_PASSWORD`. The Android workflow's release option requires `ANDROID_ACCEPTANCE_PASSED=true` and the corresponding `ANDROID_*` repository secrets, including `ANDROID_KEYSTORE_BASE64`. It uploads a signed APK artifact. The separate tagged desktop release workflow includes the debug APK with an experimental filename and test signing key; this does not satisfy production signing or physical-device acceptance. No signing credentials are included in source, and debug builds do not require them.
 
 ## Automated verification
 

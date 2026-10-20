@@ -114,17 +114,23 @@ jobs:
           if-no-files-found: error
           retention-days: 7
   package:
-    needs: [metadata, installers]
+    needs: [metadata, checks, installers]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/download-artifact@v4
         with:
           pattern: installers-*
           path: installers
+      - uses: actions/download-artifact@v4
+        with:
+          name: ytm-listen-android-feasibility-arm64
+          path: android-apk
       - name: Verify all installer formats and generate checksums
+        env:
+          RELEASE_TAG: ${{ needs.metadata.outputs.tag }}
         run: |
           python3 - <<'PY'
-          import hashlib, shutil
+          import hashlib, os, shutil, zipfile
           from pathlib import Path
 
           expected = {
@@ -143,13 +149,20 @@ jobs:
                   if not path.stat().st_size or (destination / name).exists():
                       raise SystemExit(f'Empty or duplicate installer: {name}')
                   shutil.copyfile(path, destination / name)
+          apks = list(Path('android-apk').rglob('*.apk'))
+          if len(apks) != 1 or not zipfile.is_zipfile(apks[0]):
+              raise SystemExit(f'Expected one Android feasibility APK: {apks}')
+          with zipfile.ZipFile(apks[0]) as apk:
+              if 'AndroidManifest.xml' not in apk.namelist() or apk.testzip() is not None:
+                  raise SystemExit('Android APK is incomplete or corrupt')
+          shutil.copyfile(apks[0], destination / f'YTM-Listen-{os.environ["RELEASE_TAG"]}-android-arm64-experimental.apk')
           checksums = []
           for path in sorted(destination.iterdir()):
               with path.open('rb') as stream:
                   digest = hashlib.file_digest(stream, 'sha256').hexdigest()
               checksums.append(f'{digest}  {path.name}\n')
           (destination / 'SHA256SUMS.txt').write_text(''.join(checksums))
-          print('Verified all five installers and generated SHA256SUMS.txt')
+          print('Verified five desktop installers and the experimental Android APK; generated SHA256SUMS.txt')
           PY
       - uses: actions/upload-artifact@v4
         with:
@@ -164,6 +177,7 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: release-assets
@@ -188,9 +202,11 @@ jobs:
             }
             if (!release) {
               const notes = (await github.rest.repos.generateReleaseNotes({ ...context.repo, tag_name: tag })).data;
+              const notesPath = `docs/releases/${tag}.md`;
+              const releaseNotes = fs.existsSync(notesPath) ? fs.readFileSync(notesPath, 'utf8') : notes.body;
               release = (await github.rest.repos.createRelease({
                 ...context.repo, tag_name: tag, name: `YTM Listen ${tag}`, draft: true, prerelease: false,
-                body: 'Download an installer and verify it with SHA256SUMS.txt. These builds are unsigned. Windows is the verified development target; macOS and Linux still need native behavior testing. See README for setup.\n\n' + notes.body,
+                body: 'Download an installer and verify it with SHA256SUMS.txt. Desktop builds are unsigned. Windows is the verified development target; macOS and Linux still need native behavior testing. The experimental Android APK uses a test signing key; Google sign-in is blocked and physical-device acceptance is pending. See README for setup.\n\n' + releaseNotes,
               })).data;
             }
             const names = fs.readdirSync('release-assets').sort();
