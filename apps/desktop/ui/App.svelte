@@ -51,6 +51,7 @@
     playbackView,
     allowed,
     noDevice,
+    queueEdit,
     type PlaybackDevice,
     type DeviceQueue,
   } from './playback-device';
@@ -421,6 +422,26 @@
   function command(command: PlayerCommand) {
     void action(() => send(command));
   }
+  function playFromHomeQueue(key: string) {
+    if (locked || !allowed(device, 'queue') || !allowed(device, 'transport'))
+      return;
+    const index = data.queue.findIndex((item) => item.key === key);
+    if (index < 0) return;
+    void action(async () => {
+      if (device.active) {
+        if (!device.snapshot) return;
+        await call('remote_request', {
+          command: {
+            type: 'edit_queue',
+            revision: device.snapshot.queue_revision,
+            edit: queueEdit(data.queue, { type: 'select', index }),
+          },
+        });
+      } else {
+        await call('queue_action', { action: { type: 'select', index } });
+      }
+    });
+  }
   function logout() {
     void action(async () => {
       await call('logout_account');
@@ -785,7 +806,14 @@
                 >
               </div>
               {#each data.queue.slice(data.queue_index + 1, data.queue_index + 5) as item}
-                <div class="listening-queue-row">
+                <button
+                  class="listening-queue-row"
+                  aria-label={`Play ${item.title} from Up next`}
+                  disabled={locked ||
+                    !allowed(device, 'queue') ||
+                    !allowed(device, 'transport')}
+                  onclick={() => playFromHomeQueue(item.key)}
+                >
                   <span class="track-art"
                     >{#if item.artwork}<img
                         src={item.artwork}
@@ -799,7 +827,8 @@
                       >{item.artist || item.subtitle}</small
                     >
                   </div>
-                </div>
+                  <Play class="queue-row-play" size={14} fill="currentColor" />
+                </button>
               {:else}
                 <div class="listening-queue-empty">
                   <ListMusic size={25} strokeWidth={1.3} />

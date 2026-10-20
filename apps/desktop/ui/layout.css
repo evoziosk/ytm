@@ -556,9 +556,24 @@
   color: #c9b4d0;
 }
 .listening-queue-row {
+  width: 100%;
+  text-align: left;
   padding: 11px 0;
   gap: 12px;
   border-bottom: 1px solid #e3c9ed08;
+}
+.listening-queue-row:not(:disabled):hover,
+.listening-queue-row:focus-visible {
+  background: #d4a0bc14;
+  border-radius: 9px;
+}
+.queue-row-play {
+  color: var(--accent);
+  opacity: 0;
+}
+.listening-queue-row:not(:disabled):hover .queue-row-play,
+.listening-queue-row:focus-visible .queue-row-play {
+  opacity: 1;
 }
 .listening-queue-row .track-art {
   width: 43px;

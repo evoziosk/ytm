@@ -213,3 +213,42 @@ it('disables normal transport on host loss and never starts the phone player aut
   expect(send).not.toHaveBeenCalled();
   expect(call).not.toHaveBeenCalledWith('remote_disconnect');
 });
+
+it('selects a host queue entry from Home and respects revoked queue permission', async () => {
+  await start();
+  await vi.waitFor(() =>
+    expect(
+      document.querySelector('[aria-label="Play Next host song from Up next"]'),
+    ).not.toBeNull(),
+  );
+  const next = document.querySelector<HTMLButtonElement>(
+    '[aria-label="Play Next host song from Up next"]',
+  )!;
+  next.click();
+  expect(call).toHaveBeenCalledWith('remote_request', {
+    command: {
+      type: 'edit_queue',
+      revision: 4,
+      edit: { type: 'select', entry_id: 'two' },
+    },
+  });
+  expect(call).not.toHaveBeenCalledWith('queue_action', expect.anything());
+  expect(document.querySelector('nav button.active')?.textContent?.trim()).toBe(
+    'Home',
+  );
+  flushSync(() =>
+    hooks.remote!({
+      payload: {
+        ...device,
+        participant: {
+          ...device.participant!,
+          permissions: { ...device.participant!.permissions, queue: false },
+        },
+      },
+    }),
+  );
+  expect(next.disabled).toBe(true);
+  vi.mocked(call).mockClear();
+  next.click();
+  expect(call).not.toHaveBeenCalled();
+});

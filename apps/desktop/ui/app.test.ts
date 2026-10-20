@@ -184,3 +184,36 @@ it('searches from Preferences in the music view without losing the submitted que
   ).toBe(false);
   expect(input.value).toBe('Massive Attack');
 });
+
+it('plays an Up next entry directly from Home without replacing the queue or navigating', async () => {
+  const saved = structuredClone(initial);
+  saved.queue = [0, 1].map((index) => ({
+    key: `entry-${index}`,
+    kind: 'song',
+    title: index ? 'Next song' : 'Current song',
+    artist: 'Artist',
+    subtitle: 'Artist',
+    artwork: '',
+    video_id: 'dQw4w9WgXcQ',
+    browse_id: '',
+  }));
+  vi.mocked(snapshot).mockResolvedValue(saved);
+  component = mount(App, { target: document.body });
+  await vi.waitFor(() =>
+    expect(
+      document.querySelector('[aria-label="Play Next song from Up next"]'),
+    ).not.toBeNull(),
+  );
+  document
+    .querySelector<HTMLButtonElement>(
+      '[aria-label="Play Next song from Up next"]',
+    )!
+    .click();
+  expect(call).toHaveBeenCalledWith('queue_action', {
+    action: { type: 'select', index: 1 },
+  });
+  expect(document.querySelector('nav button.active')?.textContent?.trim()).toBe(
+    'Home',
+  );
+  expect(call).not.toHaveBeenCalledWith('play_items', expect.anything());
+});
