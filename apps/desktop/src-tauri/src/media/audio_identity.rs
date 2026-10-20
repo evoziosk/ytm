@@ -23,6 +23,8 @@ const NAME: &str = "YTM Listen";
 pub struct SessionIdentity {
     pub name: String,
     pub icon_matches: bool,
+    pub endpoint_id: String,
+    pub active: bool,
 }
 
 fn icon_path(app: &AppHandle) -> Result<PathBuf, String> {
@@ -42,16 +44,45 @@ pub fn start(app: &AppHandle) -> Result<(), String> {
     }
     let app = app.clone();
     tauri::async_runtime::spawn(async move {
+        let mut previous = std::collections::HashSet::new();
         loop {
-            if let Err(error) = refresh(&app, path.clone(), true).await {
-                // No audio device, a disconnected endpoint, or a restarting
-                // WebView must not stop playback or prevent a later retry.
-                tracing::debug!(%error, "Windows mixer identity update deferred");
+            if let Ok(Ok(outputs)) = tokio::task::spawn_blocking(connected_outputs).await {
+                if previous.iter().any(|id| !outputs.contains(id))
+                    && app.state::<crate::state::Core>().snapshot().player.playing
+                {
+                    let _ =
+                        crate::commands::user_command(&app, &ytm_protocol::PlayerCommand::Pause);
+                }
+            }
+            match refresh(&app, path.clone(), true).await {
+                Ok(sessions) => {
+                    previous = sessions
+                        .into_iter()
+                        .filter(|s| s.active)
+                        .map(|s| s.endpoint_id)
+                        .collect()
+                }
+                Err(error) => tracing::debug!(%error, "Windows mixer identity update deferred"),
             }
             tokio::time::sleep(Duration::from_secs(2)).await;
         }
     });
     Ok(())
+}
+
+fn connected_outputs() -> windows::core::Result<std::collections::HashSet<String>> {
+    unsafe {
+        CoInitializeEx(None, COINIT_MULTITHREADED).ok()?;
+        let _apartment = ComApartment;
+        let enumerator: IMMDeviceEnumerator =
+            CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL)?;
+        let devices = enumerator.EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE)?;
+        let mut ids = std::collections::HashSet::new();
+        for index in 0..devices.GetCount()? {
+            ids.insert(take_string(devices.Item(index)?.GetId()?));
+        }
+        Ok(ids)
+    }
 }
 
 /// Read back the real Windows session metadata for explicit development checks.
@@ -163,6 +194,9 @@ fn sessions(
                 found.push(SessionIdentity {
                     name,
                     icon_matches: icon == expected_path,
+                    endpoint_id: take_string(device.GetId()?),
+                    active: control.GetState()?
+                        == windows::Win32::Media::Audio::AudioSessionStateActive,
                 });
             }
         }

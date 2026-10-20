@@ -1,12 +1,12 @@
 [workspace]
-members = ["crates/protocol", "apps/desktop/src-tauri"]
+members = ["crates/protocol", "crates/control", "crates/android-player", "apps/desktop/src-tauri"]
 resolver = "2"
 
 [workspace.package]
 version = "0.3.3"
 edition = "2021"
 license = "MIT"
-rust-version = "1.88"
+rust-version = "1.90"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }

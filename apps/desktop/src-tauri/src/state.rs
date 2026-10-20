@@ -41,6 +41,7 @@ pub struct Snapshot {
     pub pending_room: Option<String>,
     pub queue: Vec<MusicItem>,
     pub queue_index: usize,
+    pub queue_revision: u32,
     pub queue_playlist_id: String,
     #[serde(skip)]
     pub previous_playlist: Option<(String, String)>,
@@ -53,6 +54,9 @@ pub struct Snapshot {
 }
 #[derive(Clone)]
 pub struct Core {
+    pub remote: Arc<std::sync::Mutex<crate::control_client::ClientState>>,
+    pub mutation: Arc<tokio::sync::Mutex<()>>,
+    pub control: Arc<std::sync::Mutex<crate::control::ControlState>>,
     pub data: Arc<RwLock<Snapshot>>,
     pub changes: broadcast::Sender<PlaybackState>,
     pub party_stop: Arc<std::sync::Mutex<Option<tokio::sync::oneshot::Sender<()>>>>,
@@ -67,6 +71,9 @@ impl Core {
     pub fn new(settings: Settings) -> Self {
         let (changes, _) = broadcast::channel(64);
         Self {
+            remote: Default::default(),
+            mutation: Default::default(),
+            control: Default::default(),
             data: Arc::new(RwLock::new(Snapshot {
                 player: PlaybackState::default(),
                 settings,
@@ -76,6 +83,7 @@ impl Core {
                 pending_room: None,
                 queue: vec![],
                 queue_index: 0,
+                queue_revision: 0,
                 queue_playlist_id: String::new(),
                 previous_playlist: None,
                 shuffle: false,

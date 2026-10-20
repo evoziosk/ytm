@@ -1,16 +1,34 @@
+mod audio;
+mod backend;
 mod catalog;
 mod commands;
+mod control;
+mod control_client;
+mod control_relay;
+#[cfg(not(target_os = "android"))]
+mod control_smoke;
+#[cfg(not(target_os = "android"))]
 mod diagnostics;
+#[cfg(not(target_os = "android"))]
 mod discord;
+mod discovery;
 mod lyrics;
+#[cfg(not(target_os = "android"))]
 mod media;
 mod party;
 mod playback;
 mod queue;
 mod settings;
+#[cfg(not(target_os = "android"))]
 mod shortcuts;
 mod state;
+#[cfg(not(target_os = "android"))]
 mod tray;
+#[cfg(not(target_os = "android"))]
+mod windows;
+
+#[cfg(target_os = "android")]
+#[path = "android.rs"]
 mod windows;
 
 use state::Core;
@@ -51,6 +69,7 @@ pub fn receive_link(app: &tauri::AppHandle, link: &str) {
         });
     }
 }
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -60,6 +79,7 @@ pub fn run() {
         .init();
     let builder = tauri::Builder::default();
     // Named development profiles deliberately permit two clients for sync testing.
+    #[cfg(not(target_os = "android"))]
     let builder = if profile() == "default" {
         builder.plugin(tauri_plugin_single_instance::init(|app, argv, _| {
             for arg in argv {
@@ -70,9 +90,8 @@ pub fn run() {
     } else {
         builder
     };
-    builder
-        .plugin(tauri_plugin_store::Builder::default().build())
-        .plugin(tauri_plugin_opener::init())
+    #[cfg(not(target_os = "android"))]
+    let builder = builder
         .plugin(
             tauri_plugin_window_state::Builder::default()
                 .with_filename(format!("window-state-{}.json", profile()))
@@ -87,10 +106,32 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build());
+    #[cfg(target_os = "android")]
+    let builder = builder
+        .plugin(tauri_plugin_ytm_player::init())
+        .plugin(tauri_plugin_barcode_scanner::init());
+    builder
+        .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
+            audio::audio_status,
+            audio::audio_devices,
+            audio::audio_apply,
+            audio::audio_stop,
             commands::player_event,
+            control::control_status,
+            control::queue_track,
+            control_client::remote_status,
+            control_client::remote_connect,
+            control_client::remote_disconnect,
+            discovery::remote_discover,
+            control_client::remote_request,
+            control::control_start,
+            control::control_end,
+            control::control_participant,
+            control::control_rotate,
             commands::get_snapshot,
             commands::send_command,
             playback::retry_playback,
@@ -116,15 +157,19 @@ pub fn run() {
             let settings = settings::load(&handle)?;
             let core = Core::new(settings.clone());
             app.manage(core.clone());
+            audio::setup(&handle);
             windows::create_main(&handle)?;
-            tray::setup(&handle)?;
-            if let Err(error) = shortcuts::apply(&handle, &settings) {
-                tracing::warn!(%error, "Some shortcuts are unavailable; edit them in Settings");
+            #[cfg(not(target_os = "android"))]
+            {
+                tray::setup(&handle)?;
+                if let Err(error) = shortcuts::apply(&handle, &settings) {
+                    tracing::warn!(%error, "Some shortcuts are unavailable; edit them in Settings");
+                }
+                if let Err(error) = media::setup(&handle, &core) {
+                    tracing::warn!(%error, "Native media controls unavailable");
+                }
+                discord::start(&handle, &core);
             }
-            if let Err(error) = media::setup(&handle, &core) {
-                tracing::warn!(%error, "Native media controls unavailable");
-            }
-            discord::start(&handle, &core);
             app.deep_link().on_open_url({
                 let handle = handle.clone();
                 move |event| {
@@ -141,26 +186,35 @@ pub fn run() {
             for arg in std::env::args() {
                 receive_link(&handle, &arg);
             }
-            if !std::env::args().any(|arg| arg == "--check-music") {
+            if !std::env::args()
+                .any(|arg| matches!(arg.as_str(), "--check-music" | "--check-control"))
+            {
                 windows::open_panel(&handle, "settings")?;
             }
+            #[cfg(not(target_os = "android"))]
             diagnostics::start(&handle, &core);
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if window.label() == "search" && matches!(event, tauri::WindowEvent::Focused(false)) {
-                let _ = window.hide();
-            }
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                if window.label().starts_with("auth-") {
-                    return;
-                }
-                let core = window.state::<Core>();
-                if window.label() != "settings" || core.snapshot().settings.close_to_tray {
-                    api.prevent_close();
+        .on_window_event(|_window, _event| {
+            #[cfg(not(target_os = "android"))]
+            {
+                let window = _window;
+                let event = _event;
+                if window.label() == "search" && matches!(event, tauri::WindowEvent::Focused(false))
+                {
                     let _ = window.hide();
-                } else {
-                    window.app_handle().exit(0);
+                }
+                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                    if window.label().starts_with("auth-") {
+                        return;
+                    }
+                    let core = window.state::<Core>();
+                    if window.label() != "settings" || core.snapshot().settings.close_to_tray {
+                        api.prevent_close();
+                        let _ = window.hide();
+                    } else {
+                        window.app_handle().exit(0);
+                    }
                 }
             }
         })
@@ -168,6 +222,9 @@ pub fn run() {
         .expect("Build YTM Listen")
         .run(|app, event| {
             if let tauri::RunEvent::Exit = event {
+                if let Some(audio) = app.try_state::<audio::AudioState>() {
+                    audio.stop();
+                }
                 if let Some(core) = app.try_state::<Core>() {
                     party::client::leave(app, &core);
                 }

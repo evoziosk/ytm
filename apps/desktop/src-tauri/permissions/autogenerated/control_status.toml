@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-control-status"
+description = "Enables the control_status command without any pre-configured scope."
+commands.allow = ["control_status"]
+
+[[permission]]
+identifier = "deny-control-status"
+description = "Denies the control_status command without any pre-configured scope."
+commands.deny = ["control_status"]

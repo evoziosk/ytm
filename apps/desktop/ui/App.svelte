@@ -13,6 +13,7 @@
     Copy,
     Crown,
     Disc3,
+    MonitorSmartphone,
     EyeOff,
     Headphones,
     Heart,
@@ -43,11 +44,23 @@
   import Music from './Music.svelte';
   import SeekBar from './SeekBar.svelte';
   import AccountMenu from './AccountMenu.svelte';
+  import Sharing from './Sharing.svelte';
+  import AudioSharing from './AudioSharing.svelte';
+  import DeviceConnection from './DeviceConnection.svelte';
+  import {
+    playbackView,
+    allowed,
+    noDevice,
+    type PlaybackDevice,
+    type DeviceQueue,
+  } from './playback-device';
+  import { listen } from '@tauri-apps/api/event';
   import {
     call,
     defaults,
     initial,
     native,
+    mobile,
     send,
     snapshot,
     subscribe,
@@ -65,8 +78,11 @@
     | 'queue'
     | 'discord'
     | 'party'
+    | 'remote'
+    | 'group'
     | 'hotkeys'
     | 'general'
+    | 'audio'
     | 'about';
   let tab = $state<Tab>(panel === 'party' ? 'party' : 'overview');
   let musicView = $state<'home' | 'search' | 'library' | 'queue'>('home');
@@ -79,7 +95,87 @@
     )
       musicView = tab === 'overview' ? 'home' : tab;
   });
-  let data = $state<Snapshot>(structuredClone(initial));
+  let localData = $state<Snapshot>(structuredClone(initial));
+  let device = $state<PlaybackDevice>({ ...noDevice });
+  let deviceQueue = $state<DeviceQueue | null>(null);
+  let devicePickerOpen = $state(false);
+  let devicePolling = false;
+  let queueLoading = $state(false);
+  const data = $derived(playbackView(localData, device, deviceQueue));
+  const remoteReady = $derived(
+    !device.active ||
+      Boolean(
+        device.snapshot &&
+        device.participant?.approved &&
+        device.message === 'Connected',
+      ),
+  );
+  async function loadDeviceQueue(more = false) {
+    if (!device.active || !device.snapshot || !remoteReady || queueLoading)
+      return;
+    const session = device.snapshot.session_id;
+    const revision = device.snapshot.queue_revision;
+    const offset =
+      more && deviceQueue?.revision === revision
+        ? deviceQueue.entries.length
+        : 0;
+    queueLoading = true;
+    try {
+      const result = await call<DeviceQueue>('remote_request', {
+        command: { type: 'queue', offset, limit: 50 },
+      });
+      if (
+        device.active &&
+        device.snapshot?.session_id === session &&
+        device.snapshot.queue_revision === revision &&
+        result.type === 'queue' &&
+        result.revision === revision
+      ) {
+        deviceQueue = {
+          ...result,
+          entries:
+            offset && deviceQueue?.revision === revision
+              ? [...deviceQueue.entries, ...result.entries]
+              : result.entries,
+        };
+      }
+    } catch (e) {
+      if (device.active) error = String(e);
+    } finally {
+      queueLoading = false;
+    }
+  }
+  function acceptDevice(status: PlaybackDevice) {
+    if (!status || typeof status.active !== 'boolean') return;
+    if (
+      device.snapshot?.session_id !== status.snapshot?.session_id ||
+      !status.active ||
+      !status.snapshot
+    )
+      deviceQueue = null;
+    device = status;
+  }
+  async function refreshDevice() {
+    if (!native || devicePolling) return;
+    devicePolling = true;
+    try {
+      acceptDevice(await call<PlaybackDevice>('remote_status'));
+    } finally {
+      devicePolling = false;
+    }
+  }
+  let requestedQueueKey = '';
+  $effect(() => {
+    if (!device.active || !device.snapshot) {
+      requestedQueueKey = '';
+      return;
+    }
+    const key = `${device.snapshot.session_id}:${device.snapshot.queue_revision}`;
+    if (remoteReady && !queueLoading && key !== requestedQueueKey) {
+      requestedQueueKey = key;
+      void loadDeviceQueue();
+    }
+  });
   let draft = $state<Settings>(structuredClone(defaults));
   let ready = $state(false);
   let busy = $state(false);
@@ -87,6 +183,7 @@
   let error = $state('');
   let toast = $state('');
   let accountOpen = $state(false);
+
   let room = $state('');
   let clock = $state(Date.now());
   let lyrics = $state<Line[]>([]);
@@ -121,10 +218,31 @@
     { id: 'search', label: 'Search', icon: Search },
     { id: 'library', label: 'Your library', icon: Library },
     { id: 'queue', label: 'Play queue', icon: ListMusic },
-    { id: 'discord', label: 'Discord presence', icon: MessageCircle },
+    ...(!mobile
+      ? [
+          {
+            id: 'discord',
+            label: 'Discord presence',
+            icon: MessageCircle,
+          } as const,
+        ]
+      : []),
     { id: 'party', label: 'Listen together', icon: Users },
-    { id: 'hotkeys', label: 'Keyboard shortcuts', icon: Keyboard },
+    { id: 'remote', label: 'Remote control', icon: Radio },
+    { id: 'group', label: 'Group control', icon: Headphones },
+    ...(!mobile
+      ? [
+          {
+            id: 'hotkeys',
+            label: 'Keyboard shortcuts',
+            icon: Keyboard,
+          } as const,
+        ]
+      : []),
     { id: 'general', label: 'Preferences', icon: SlidersHorizontal },
+    ...(!mobile
+      ? [{ id: 'audio', label: 'Virtual microphone', icon: MicVocal } as const]
+      : []),
   ] as const;
   const shortcuts: {
     key: keyof Pick<
@@ -172,8 +290,9 @@
     },
   ];
   function accept(next: Snapshot) {
-    const unchanged = JSON.stringify(draft) === JSON.stringify(data.settings);
-    data = next;
+    const unchanged =
+      JSON.stringify(draft) === JSON.stringify(localData.settings);
+    localData = next;
     if (!ready || unchanged) draft = structuredClone(next.settings);
     ready = true;
     if (next.pending_room && next.pending_room !== lastPendingRoom) {
@@ -199,10 +318,29 @@
       accept(await snapshot());
     })().catch((e) => (error = String(e)));
     const timer = setInterval(() => (clock = Date.now()), 250);
+    let disposeDevice = () => {};
+    if (native) {
+      void refreshDevice().catch(() => {});
+      void listen<PlaybackDevice>('remote-state', (event) => {
+        if (!disposed) acceptDevice(event.payload);
+      })
+        .then((dispose) => {
+          if (disposed) dispose();
+          else disposeDevice = dispose;
+        })
+        .catch(() => {});
+    }
+    const remoteTimer = native
+      ? setInterval(() => {
+          if (!disposed) void refreshDevice().catch(() => {});
+        }, 1500)
+      : undefined;
     return () => {
       disposed = true;
       dispose();
       clearInterval(timer);
+      clearInterval(remoteTimer);
+      disposeDevice();
     };
   });
   async function action(fn: () => Promise<unknown>) {
@@ -224,7 +362,10 @@
     error = '';
     try {
       await call('save_settings', { settings: $state.snapshot(draft) });
-      data = { ...data, settings: structuredClone($state.snapshot(draft)) };
+      localData = {
+        ...localData,
+        settings: structuredClone($state.snapshot(draft)),
+      };
       notify('Preferences saved');
       return true;
     } catch (e) {
@@ -240,7 +381,10 @@
     error = '';
     try {
       if (native) await call('set_window_blur', { enabled });
-      data = { ...data, settings: { ...data.settings, window_blur: enabled } };
+      localData = {
+        ...localData,
+        settings: { ...localData.settings, window_blur: enabled },
+      };
       draft.window_blur = enabled;
     } catch (e) {
       error = String(e).replace(/^Error: /, '');
@@ -327,14 +471,14 @@
     <button
       class="icon"
       aria-label="Previous track"
-      disabled={!track || locked || data.player.ad}
+      disabled={!track || locked || data.player.ad || !allowed(device, 'skip')}
       onclick={() => command({ type: 'previous' })}
       ><SkipBack size={18} fill="currentColor" /></button
     >
     <button
       class="play-button"
       aria-label={data.player.playing ? 'Pause' : 'Play'}
-      disabled={!track || locked}
+      disabled={!track || locked || !allowed(device, 'transport')}
       onclick={() => command({ type: 'toggle' })}
       >{#if data.player.playing}<Pause
           size={19}
@@ -344,7 +488,7 @@
     <button
       class="icon"
       aria-label="Next track"
-      disabled={!track || locked || data.player.ad}
+      disabled={!track || locked || data.player.ad || !allowed(device, 'skip')}
       onclick={() => command({ type: 'next' })}
       ><SkipForward size={18} fill="currentColor" /></button
     >
@@ -355,7 +499,7 @@
     player={data.player}
     {position}
     {clock}
-    {locked}
+    locked={locked || !allowed(device, 'seek')}
     onError={(message) => (error = message)}
   />
 {/snippet}
@@ -419,7 +563,7 @@
     >
   </main>
 {:else}
-  <div class="app-shell">
+  <div class="app-shell" class:mobile-app={mobile}>
     <aside class="sidebar">
       <a href="#overview" class="brand" onclick={() => (tab = 'overview')}
         ><span class="brand-mark"><AudioLines size={25} strokeWidth={2} /></span
@@ -455,7 +599,9 @@
         >
         <div class="build-label">
           <span class="status-dot"></span>{native
-            ? 'DESKTOP COMPANION'
+            ? mobile
+              ? 'YTM LISTEN'
+              : 'DESKTOP COMPANION'
             : 'INTERFACE PREVIEW'}
         </div>
       </div>
@@ -478,6 +624,23 @@
         />
       </header>
       <main class="content">
+        {#if !mobile && panel === 'settings'}
+          <AudioSharing
+            visible={tab === 'audio'}
+            onOpen={() => (tab = 'audio')}
+          />
+        {/if}
+        {#if device.active}<section
+            class="remote-banner"
+            aria-label="Playback device"
+          >
+            <button
+              class="text-button"
+              onclick={() => (devicePickerOpen = true)}
+              ><MonitorSmartphone size={18} /> Playback device: {device.target}</button
+            >
+            <span role="status">{device.message}</span>
+          </section>{/if}
         {#if !native}<div class="preview-note">
             <Disc3 size={14} /> Interface preview. Playback and integrations run in
             the desktop app.
@@ -492,6 +655,9 @@
         >
           <Music
             {data}
+            remoteQueueTotal={deviceQueue?.total ?? 0}
+            onLoadDeviceQueue={() => loadDeviceQueue(true)}
+            onRefreshDeviceQueue={() => loadDeviceQueue()}
             view={musicView}
             active={tab === 'overview' ||
               tab === 'search' ||
@@ -501,7 +667,12 @@
             onAccount={() => (accountOpen = true)}
           />
         </div>
-        {#if tab === 'discord'}
+        {#if tab === 'remote' || tab === 'group'}
+          <button class="primary" onclick={() => (devicePickerOpen = true)}
+            ><MonitorSmartphone size={18} />Choose a playback device</button
+          >
+          <Sharing mode={tab === 'remote' ? 'personal' : 'group'} />
+        {:else if tab === 'discord'}
           <div class="page-title">
             <div>
               <div class="eyebrow">LET YOUR MUSIC SAY HELLO</div>
@@ -864,7 +1035,7 @@
               <p>A companion that fits the way you listen.</p>
             </div>
           </div>
-          {#if panel === 'settings'}
+          {#if panel === 'settings' && !mobile}
             <section class="card appearance-card">
               <h3>Appearance</h3>
               <div class="setting-row">
@@ -923,7 +1094,7 @@
               {:else}Current stream quality will appear when a song starts.{/if}
             </p>
           </section>
-          <section class="card">
+          <section class="card" hidden={mobile}>
             <h3>Your desktop, your rhythm.</h3>
             <div class="setting-row">
               <div>
@@ -946,7 +1117,7 @@
               />
             </div>
           </section>
-          <section class="card">
+          <section class="card" hidden={mobile}>
             <div class="section-heading">
               <h3>A smaller way to stay close.</h3>
               <span class="feature-icon green"><Disc3 size={22} /></span>
@@ -1039,7 +1210,7 @@
               />{/if}Save preferences</button
           >
         </div>{/if}
-      <div class="now-playing">
+      <div class="now-playing" class:remote-playing={device.active}>
         <div class="now-track">
           {@render artwork()}
           <div class="truncate">
@@ -1050,7 +1221,7 @@
                 : (track?.artist ?? 'Search for your next favorite above.')}
             </p>
           </div>
-          {#if track}<button
+          {#if track && !device.active}<button
               class="icon"
               aria-label="Like current song"
               onclick={() => command({ type: 'like' })}
@@ -1058,24 +1229,41 @@
             >{/if}
         </div>
         <div class="now-controls">
+          <button
+            class="device-picker-button"
+            class:connected={device.active}
+            aria-label="Choose playback device"
+            disabled={!native}
+            onclick={() => (devicePickerOpen = true)}
+            ><MonitorSmartphone size={16} /><span
+              >{device.active
+                ? device.target
+                : mobile
+                  ? 'This phone'
+                  : 'This computer'}</span
+            ></button
+          >
           {@render transport()}{@render progress()}
         </div>
         <div class="now-extras">
-          {#if draft.incognito}<EyeOff size={17} />{/if}<button
-            class="icon"
-            aria-label="Open mini-player"
-            onclick={() => action(() => call('open_panel', { panel: 'mini' }))}
-            ><Disc3 size={18} /></button
-          ><button
-            class="icon"
-            aria-label={data.player.muted ? 'Unmute' : 'Mute'}
-            aria-pressed={data.player.muted}
-            onclick={() => command({ type: 'mute', muted: !data.player.muted })}
-            >{#if data.player.muted || data.player.volume === 0}<VolumeX
-                size={17}
-              />{:else}<Volume2 size={17} />{/if}</button
-          ><input
+          {#if draft.incognito}<EyeOff size={17} />{/if}{#if !mobile}<button
+              class="icon"
+              aria-label="Open mini-player"
+              onclick={() =>
+                action(() => call('open_panel', { panel: 'mini' }))}
+              ><Disc3 size={18} /></button
+            >{/if}{#if !device.active}<button
+              class="icon"
+              aria-label={data.player.muted ? 'Unmute' : 'Mute'}
+              aria-pressed={data.player.muted}
+              onclick={() =>
+                command({ type: 'mute', muted: !data.player.muted })}
+              >{#if data.player.muted || data.player.volume === 0}<VolumeX
+                  size={17}
+                />{:else}<Volume2 size={17} />{/if}</button
+            >{/if}<input
             aria-label="Volume"
+            disabled={!allowed(device, 'volume')}
             type="range"
             min="0"
             max="1"
@@ -1167,6 +1355,43 @@
         browser, that remains a compatibility blocker; repeatedly signing in
         will not resolve it.
       </p>
+    </div>
+  </div>
+{/if}
+
+{#if devicePickerOpen}
+  <div class="modal-backdrop" role="presentation">
+    <div
+      class="device-dialog card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="device-title"
+      tabindex="-1"
+    >
+      <button
+        class="icon device-close"
+        aria-label="Close device picker"
+        onclick={() => (devicePickerOpen = false)}><X size={20} /></button
+      >
+      <h2 id="device-title">Play on a device</h2>
+      <p>Your player follows the selected device. Audio plays there.</p>
+      <button
+        class="device-local secondary"
+        aria-pressed={!device.active}
+        onclick={() =>
+          action(async () => {
+            if (device.active) await call('remote_disconnect');
+            acceptDevice({ ...noDevice });
+            devicePickerOpen = false;
+          })}
+      >
+        <MonitorSmartphone size={20} />{mobile ? 'This phone' : 'This computer'}
+        {device.active ? '· Disconnect from host' : '· Selected'}
+      </button>
+      <DeviceConnection
+        onChange={acceptDevice}
+        onConnected={() => (devicePickerOpen = false)}
+      />
     </div>
   </div>
 {/if}

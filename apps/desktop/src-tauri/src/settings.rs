@@ -1,5 +1,8 @@
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
+#[cfg(not(target_os = "android"))]
+use tauri::Manager;
+#[cfg(not(target_os = "android"))]
 use tauri_plugin_autostart::ManagerExt;
 use tauri_plugin_store::StoreExt;
 
@@ -131,6 +134,7 @@ pub fn load(app: &AppHandle) -> Result<Settings, Box<dyn std::error::Error>> {
     settings.validate().map_err(std::io::Error::other)?;
     Ok(settings)
 }
+#[cfg(not(target_os = "android"))]
 pub fn save(app: &AppHandle, settings: &Settings) -> Result<(), String> {
     let previous = app.state::<crate::state::Core>().snapshot().settings;
     let store = app
@@ -218,4 +222,16 @@ mod tests {
         settings.validate().unwrap();
         assert_eq!(settings.blocked_playlists, ["PLabc_123"]);
     }
+}
+
+#[cfg(target_os = "android")]
+pub fn save(app: &AppHandle, settings: &Settings) -> Result<(), String> {
+    let store = app
+        .store(format!("settings-{}.json", crate::profile()))
+        .map_err(|e| e.to_string())?;
+    store.set(
+        "settings",
+        serde_json::to_value(settings).map_err(|e| e.to_string())?,
+    );
+    store.save().map_err(|e| e.to_string())
 }

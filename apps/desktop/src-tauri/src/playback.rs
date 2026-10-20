@@ -67,18 +67,6 @@ pub fn dismiss_playback_error(app: AppHandle) {
 }
 
 async fn request(app: &AppHandle, core: &Core, command: &PlayerCommand) -> Result<(), String> {
-    let main = app
-        .get_webview_window("main")
-        .ok_or("Playback service unavailable")?;
-    if main
-        .url()
-        .map_err(|e| e.to_string())?
-        .origin()
-        .ascii_serialization()
-        != "https://music.youtube.com"
-    {
-        return Err("Finish signing in, then retry playback.".into());
-    }
     use rand::Rng;
     let id: String = (0..16)
         .map(|_| format!("{:02x}", rand::rng().random::<u8>()))
@@ -92,9 +80,10 @@ async fn request(app: &AppHandle, core: &Core, command: &PlayerCommand) -> Resul
         pending.insert(id.clone(), sender);
     }
     let payload = serde_json::to_string(command).map_err(|e| e.to_string())?;
-    if let Err(error) = main.eval(format!(
-        "window.__YTM_LISTEN_REQUEST__?.({id:?}, {payload})"
-    )) {
+    if let Err(error) = crate::backend::evaluate(
+        app,
+        &format!("window.__YTM_LISTEN_REQUEST__?.({id:?}, {payload})"),
+    ) {
         core.command_pending
             .lock()
             .expect("command lock")

@@ -220,6 +220,32 @@ async function authorization(): Promise<string | null> {
 export async function queryCatalog(
   request: CatalogRequest,
 ): Promise<CatalogPage> {
+  if (request.kind === 'public_search' || request.kind === 'public_browse') {
+    // Deliberately construct a fresh context: no cookies, user context, auth headers,
+    // visitor identity, continuations or private browse IDs from the host session.
+    const clientVersion = config('INNERTUBE_CONTEXT')?.client?.clientVersion;
+    if (!clientVersion) throw new Error('The music service is still loading.');
+    const browsing = request.kind === 'public_browse';
+    if (browsing && !/^(UC|MPRE|VL)[\w-]{1,250}$/.test(request.browse_id))
+      throw new Error('Invalid public collection.');
+    const response = await fetch(
+      `/youtubei/v1/${browsing ? 'browse' : 'search'}?prettyPrint=false`,
+      {
+        method: 'POST',
+        credentials: 'omit',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          context: { client: { clientName: 'WEB_REMIX', clientVersion } },
+          ...(browsing
+            ? { browseId: request.browse_id }
+            : { query: request.query }),
+        }),
+        signal: AbortSignal.timeout(15000),
+      },
+    );
+    if (!response.ok) throw new Error('Public search is unavailable.');
+    return parseCatalog(await response.json(), 'Public search', false);
+  }
   const context = config('INNERTUBE_CONTEXT');
   if (!context?.client)
     throw new Error(

@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
+mod control;
+pub use control::*;
+
 pub const VERSION: u32 = 1;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, TS, PartialEq)]
@@ -75,6 +78,8 @@ pub enum PlayerEvent {
 #[derive(Debug, Clone, Serialize, Deserialize, TS)]
 #[serde(rename_all = "snake_case")]
 pub enum CatalogKind {
+    PublicSearch,
+    PublicBrowse,
     Home,
     Search,
     Library,

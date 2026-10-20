@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-control-participant"
+description = "Enables the control_participant command without any pre-configured scope."
+commands.allow = ["control_participant"]
+
+[[permission]]
+identifier = "deny-control-participant"
+description = "Denies the control_participant command without any pre-configured scope."
+commands.deny = ["control_participant"]

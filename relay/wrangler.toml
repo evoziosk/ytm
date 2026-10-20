@@ -3,11 +3,20 @@ main = "src/index.ts"
 compatibility_date = "2026-10-01"
 
 [durable_objects]
-bindings = [{ name = "ROOM", class_name = "Room" }]
+bindings = [{ name = "ROOM", class_name = "Room" }, { name = "CONTROL", class_name = "ControlSession" }]
+
+[assets]
+directory = "../apps/controller"
+binding = "ASSETS"
+run_worker_first = true
 
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Room"]
+
+[[migrations]]
+tag = "v2-control"
+new_sqlite_classes = ["ControlSession"]
 
 [vars]
 # Point forks to their own Releases page before deploying.

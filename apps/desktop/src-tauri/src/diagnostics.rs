@@ -5,6 +5,39 @@ use ytm_protocol::{CatalogKind, CatalogRequest, PlayerCommand};
 
 /// Explicit development check against the real playback WebView. No session secrets are exported.
 pub fn start(app: &AppHandle, core: &Core) {
+    #[cfg(target_os = "windows")]
+    if std::env::args().any(|arg| arg == "--check-audio-routing") {
+        let app = app.clone();
+        tauri::async_runtime::spawn(async move {
+            tokio::time::sleep(std::time::Duration::from_secs(8)).await;
+            match crate::audio::check(&app).await {
+                Ok(result) => {
+                    println!("AUDIO_ROUTING_CHECK {result}");
+                    app.exit(if result["passed"] == true { 0 } else { 1 });
+                }
+                Err(error) => {
+                    println!(
+                        "AUDIO_ROUTING_CHECK {}",
+                        serde_json::json!({"passed":false,"error":error})
+                    );
+                    app.exit(1);
+                }
+            }
+        });
+        return;
+    }
+    if std::env::args().any(|arg| arg == "--check-control") {
+        let app = app.clone();
+        tauri::async_runtime::spawn(async move {
+            let result = crate::control_smoke::run(&app).await;
+            println!(
+                "CONTROL_CHECK {}",
+                serde_json::json!({"passed":result.is_ok(),"error":result.as_ref().err()})
+            );
+            app.exit(if result.is_ok() { 0 } else { 1 });
+        });
+        return;
+    }
     if !std::env::args().any(|arg| arg == "--check-music") {
         return;
     }

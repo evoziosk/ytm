@@ -1,7 +1,22 @@
 fn main() {
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
         tauri_build::AppManifest::new().commands(&[
+            "audio_status",
+            "audio_devices",
+            "audio_apply",
+            "audio_stop",
             "player_event",
+            "control_status",
+            "queue_track",
+            "remote_status",
+            "remote_connect",
+            "remote_disconnect",
+            "remote_discover",
+            "remote_request",
+            "control_start",
+            "control_end",
+            "control_participant",
+            "control_rotate",
             "get_snapshot",
             "send_command",
             "retry_playback",

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Remote control · YTM Listen</title>
+    <link rel="stylesheet" href="controller.css" />
+    <script type="module" src="controller.js"></script>
+  </head>
+  <body>
+    <main>
+      <p class="brand">YTM LISTEN / SHARED CONTROL</p>
+      <h1 id="host">Connect to a host</h1>
+      <p id="status" role="status">
+        Request admission on this LAN host, or open its full invitation link.
+      </p>
+      <form id="connect">
+        <label
+          >Your device name<input
+            id="name"
+            maxlength="64"
+            value="Browser"
+            required /></label
+        ><button>Request admission</button>
+      </form>
+      <form id="manual">
+        <label
+          >Invitation link<input
+            id="address"
+            type="url"
+            placeholder="http://192.168.1.10:9863/#session=…"
+            required /></label
+        ><button>Open invitation</button>
+      </form>
+      <button id="disconnect" hidden>Disconnect</button>
+      <p id="error" role="alert"></p>
+      <section id="controls" hidden>
+        <article class="now">
+          <p>PLAYING ON THE HOST</p>
+          <h2 id="title">No track playing</h2>
+          <p id="artist"></p>
+        </article>
+        <div class="transport">
+          <button id="previous">Previous</button><button id="play">Play</button
+          ><button id="pause">Pause</button><button id="next">Skip</button>
+        </div>
+        <label
+          >Position<input
+            id="seek"
+            type="range"
+            min="0"
+            max="1"
+            step="1"
+            value="0"
+        /></label>
+        <label
+          >Host volume<input
+            id="volume"
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value="1"
+        /></label>
+        <h2>Public search</h2>
+        <form id="search">
+          <input
+            id="query"
+            aria-label="Search music"
+            maxlength="512"
+            required
+          /><button>Search</button>
+        </form>
+        <p id="search-status" role="status"></p>
+        <div id="results"></div>
+        <button id="more-results" hidden>More results</button>
+        <h2>Host queue</h2>
+        <div id="queue"></div>
+        <button id="more-queue" hidden>More queue</button
+        ><button id="clear">Clear upcoming queue</button>
+        <h2>Participants</h2>
+        <ul id="participants"></ul>
+      </section>
+      <footer>
+        Audio stays on the host. Account and private library access stay local.
+      </footer>
+    </main>
+  </body>
+</html>

@@ -6,7 +6,11 @@ YouTube Music runs in a background playback session. Browsing and playback contr
 
 **Version:** 0.3.3 · **Primary platform:** Windows x64 · **License:** [MIT](LICENSE) · **Built with:** Tauri 2, Rust, Svelte 5, and Cloudflare Durable Objects
 
+Remote and group control now share one host player over LAN or the Cloudflare relay, with browser and installed controllers, approval, permissions and revocable device pairing. The full-app Android feasibility build includes the native playback service; physical-device acceptance is still required before Android hosting is considered supported. See [shared control, deployment and Android validation](docs/shared-control.md).
+
 [Download for Windows](https://github.com/evoziosk/ytm/releases/latest) · [Screenshots](#screenshots) · [Features](#features) · [Build from source](#run-from-source) · [Report an issue](https://github.com/evoziosk/ytm/issues)
+
+Windows development builds include [virtual microphone routing](docs/virtual-microphone.md): share the local player's music and optionally mix in a physical microphone using an installed virtual audio cable. This feature is not included in the previously published v0.3.3 installer.
 
 [![CI](https://github.com/evoziosk/ytm/actions/workflows/ci.yml/badge.svg)](https://github.com/evoziosk/ytm/actions/workflows/ci.yml)
 
@@ -20,10 +24,13 @@ YouTube Music runs in a background playback session. Browsing and playback contr
 - [Google sign-in and first launch](#google-sign-in-and-first-launch)
 - [Search, playback, and queue](#search-playback-and-queue)
 - [YouTube Music Premium audio quality](#youtube-music-premium-audio-quality)
+- [Virtual microphone: music and voice](#virtual-microphone-music-and-voice)
 - [Popup search and keyboard shortcuts](#popup-search-and-keyboard-shortcuts)
 - [Window blur, tray, and mini-player](#window-blur-tray-and-mini-player)
 - [Discord Rich Presence setup](#discord-rich-presence-setup)
 - [Listen together with friends](#listen-together-with-friends)
+- [Remote and group control](#remote-and-group-control)
+- [Android app status](#android-app-status)
 - [Lyrics](#lyrics)
 - [Privacy and account data](#privacy-and-account-data)
 - [Run from source](#run-from-source)
@@ -37,19 +44,22 @@ YouTube Music runs in a background playback session. Browsing and playback contr
 
 ## Features
 
-| Feature                          | What you can do                                                                                                                                                         |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **YouTube Music desktop player** | Browse Home, search for music, open albums and playlists, access your signed-in library, and control playback inside YTM Listen.                                        |
-| **Song-first search**            | Prefer song recordings and audio playback, including eligible tracks paired with a music video. Keep video-only recordings when a matching song version is unavailable. |
-| **Premium audio quality**        | Request High through YouTube Music's own player and inspect the active stream's bitrate, quality, and account entitlement in Preferences.                               |
-| **Global popup search**          | Press `Ctrl+Shift+K` from another application, search for a song, select with the arrow keys, and press Enter to play.                                                  |
-| **Discord Rich Presence**        | Share a Listening activity with song details, artwork, progress, and music or room buttons. Configure pause/idle hiding and artist/playlist blocklists.                 |
-| **Listening rooms**              | Host or join a room with track, play/pause, and playback-position synchronization. Share an invitation and transfer the host role.                                      |
-| **Queue controls**               | Select, reorder, and remove tracks; clear other tracks; shuffle the remaining queue; and switch repeat off, all, or one.                                                |
-| **Desktop integration**          | Use tray controls, configurable global shortcuts, native media controls, an always-on-top mini-player, launch at startup, and close to tray.                            |
-| **Optional window blur**         | Enable a translucent main window with native Windows desktop blur. The switch applies immediately and remembers your choice.                                            |
-| **Lyrics**                       | Look up plain or synchronized lyrics from LRCLIB, with timed highlighting when available.                                                                               |
-| **Windows audio identity**       | See YTM Listen's name and icon in the Windows volume mixer.                                                                                                             |
+| Feature                          | What you can do                                                                                                                                                                               |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **YouTube Music desktop player** | Browse Home, search for music, open albums and playlists, access your signed-in library, and control playback inside YTM Listen.                                                              |
+| **Song-first search**            | Prefer song recordings and audio playback, including eligible tracks paired with a music video. Keep video-only recordings when a matching song version is unavailable.                       |
+| **Premium audio quality**        | Request High through YouTube Music's own player and inspect the active stream's bitrate, quality, and account entitlement in Preferences.                                                     |
+| **Global popup search**          | Press `Ctrl+Shift+K` from another application, search for a song, select with the arrow keys, and press Enter to play.                                                                        |
+| **Discord Rich Presence**        | Share a Listening activity with song details, artwork, progress, and music or room buttons. Configure pause/idle hiding and artist/playlist blocklists.                                       |
+| **Listening rooms**              | Host or join a room with track, play/pause, and playback-position synchronization. Share an invitation and transfer the host role.                                                            |
+| **Queue controls**               | Select, reorder, and remove tracks; clear other tracks; shuffle the remaining queue; and switch repeat off, all, or one.                                                                      |
+| **Desktop integration**          | Use tray controls, configurable global shortcuts, native media controls, an always-on-top mini-player, launch at startup, and close to tray.                                                  |
+| **Optional window blur**         | Enable a translucent main window with native Windows desktop blur. The switch applies immediately and remembers your choice.                                                                  |
+| **Lyrics**                       | Look up plain or synchronized lyrics from LRCLIB, with timed highlighting when available.                                                                                                     |
+| **Windows audio identity**       | See YTM Listen's name and icon in the Windows volume mixer.                                                                                                                                   |
+| **Virtual microphone preview**   | Route local music and an optional physical microphone to an installed Windows virtual cable, with separate levels, meters, mute, peak protection, and tray controls.                          |
+| **Remote and group control**     | Control one host player from the installed app or a browser over LAN or an optional relay. Approve devices, manage permissions, and revoke pairing.                                           |
+| **Android feasibility build**    | Build the full app for Android, including installed remote control and a native playback service. Android Google sign-in is currently blocked; physical-device hosting acceptance is pending. |
 
 Windows is the verified development target. macOS and Linux have build configuration in CI, but their native behavior still needs platform testing. Google sign-in and Premium playback have been confirmed working by the user. See the [verification notes](docs/verification.md) for test evidence and remaining manual checks.
 
@@ -134,7 +144,7 @@ When seeking, the selected position stays visible while the player confirms it. 
 
 Open **Play queue** to select, move, or remove a track. **Clear other tracks** keeps the current song. Shuffle affects the remaining queue, and repeat cycles between **off**, **all**, and **one**.
 
-Choosing a new search result or collection currently replaces the active queue. **Play loaded** queues results already fetched; it does not fetch every remaining catalog page. App-owned session restoration and separate **Play next / Add to queue** actions are planned improvements.
+Use **Play next** or **Add to queue** on a song to place it after the current track or at the end. **Play loaded** queues results already fetched; it does not fetch every remaining catalog page. Installed controllers can send selected songs to their active host, with permission checks and bounded collection batches. App-owned session restoration is still planned.
 
 ## YouTube Music Premium audio quality
 
@@ -149,6 +159,21 @@ Open **Preferences → Streaming quality** to inspect:
 The displayed bitrate belongs to the format currently playing. A higher-quality format merely being listed as available is not reported as the active stream.
 
 Premium features require the appropriate YouTube Music subscription. Delivered quality also depends on the recording, service availability, connection conditions, and account. See [YouTube Music's audio-quality documentation](https://support.google.com/youtubemusic/answer/9076559).
+
+## Virtual microphone: music and voice
+
+Windows source builds include a **Virtual microphone** page for sending this computer's music, optionally mixed with your physical microphone, to Discord, OBS, or another audio application. The previously published v0.3.3 installer does not contain this preview.
+
+1. Install [VB-CABLE from VB-Audio](https://vb-audio.com/Cable/) if a compatible virtual cable is not already installed. Follow the vendor's administrator/restart instructions; VB-CABLE is donationware.
+2. Open **Virtual microphone**, refresh devices, and select the cable's **playback input**, usually **CABLE Input**.
+3. Start a song locally and choose **Start sharing**. Select the cable's **recording output**, usually **CABLE Output**, as the input in the receiving app.
+4. To share your voice too, select your physical microphone and explicitly enable **Include microphone**. Music sharing alone leaves the microphone off.
+
+Music and voice have separate levels and meters. The mixer uses **48 kHz stereo, 32-bit float PCM**, sample-rate conversion and clock-drift correction, with stereo-linked peak protection. It adds no extra lossy music encoding. Player volume/mute can affect outgoing music, and receiving apps can apply their own compression or suppression. Premium source quality depends on the signed-in account's entitlement.
+
+Sharing and microphone capture start off after every relaunch. Muting closes the physical mic capture and clears queued mixed audio; device loss never silently selects another microphone. A banner and tray controls provide mute and stop while navigating or hiding the window. Use headphones to avoid acoustic feedback. Windows' default audio devices stay unchanged.
+
+This feature requires **Windows build 20348 or newer** and a separately installed virtual cable. The live playback-process capture/isolation check and automated mixer/UI tests pass. Physical mic mixing through a cable into Discord/OBS, real long-session drift, and end-to-end latency still need hardware acceptance. See the [setup and verification guide](docs/virtual-microphone.md) and [implementation plan](docs/virtual-microphone-plan.md).
 
 ## Popup search and keyboard shortcuts
 
@@ -265,6 +290,26 @@ Enter the deployed HTTPS origin, without a room path, in each participant's **Re
 
 Restarting the host loses its in-memory reconnect credential; create a new room afterward. The relay stores current room/sync state for hibernation, rather than a listening history. Use a trusted relay operator and deployment-level quotas for a public service; per-room limits do not cap total rooms or hosting costs.
 
+## Remote and group control
+
+These modes control **one host player**; audio plays on that host. Installed controllers use the normal player, search and queue, while browser guests use a compact controller page. **Listen together** remains separate and plays music on each room member's device.
+
+- **Remote control** pairs your own devices. Approved personal devices can reconnect until revoked.
+- **Group control** admits guests for the current live host session. The host approves access and can change permissions, rotate invitations, or remove participants.
+- Use the player bar's device picker to find verified nearby hosts, scan a QR invitation, paste an invitation link, or enter a LAN address. LAN hosting uses TCP **9863**, with optional mDNS discovery over UDP **5353**.
+- Anonymous controllers can browse the host's public catalog. Private library and account data stay local. Queue edits use stable entry IDs and revisions; reconnecting does not automatically replay uncertain commands.
+- The optional Cloudflare control relay carries commands and playback metadata. Host loss disables controls without moving playback to the controller automatically.
+
+End/disconnect the current mode explicitly before switching. LAN traffic is intended for trusted local networks. Read [shared control setup, permissions, relay deployment, and verification](docs/shared-control.md) for details.
+
+## Android app status
+
+The full-app Android feasibility build shares the Svelte interface and control protocol, with a native foreground playback service, media-session controls, and QR scanning. Desktop tray, global shortcuts, Discord presence and Windows virtual-mic routing are unavailable on Android.
+
+**Android Google sign-in is currently blocked by Google's embedded-browser policy.** Account/library support and reliable background hosting are not accepted features. Remote control of an authenticated desktop host does not require Google sign-in on the Android controller. Physical-device checks for screen lock, calls, Bluetooth, service recovery and cross-device playback remain pending.
+
+The Android workflow builds an arm64 feasibility APK as an artifact. It does not publish an Android release; signed APK builds require maintainer credentials and a recorded physical acceptance pass. See the [Android prerequisites and acceptance checklist](docs/shared-control.md#android-feasibility-build).
+
 ## Lyrics
 
 Open **Lyrics** from Preferences or the tray and look up the current song. Lyrics come from [LRCLIB](https://lrclib.net/docs). Timed lyrics highlight the current line when synchronized text is available; plain lyrics are used when supplied instead.
@@ -273,16 +318,18 @@ Lookup sends the track title, artist, and rounded duration to LRCLIB. Availabili
 
 ## Privacy and account data
 
-| Data or service      | How it is used                                                                                                                            |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Google sign-in       | Handled in a persistent WebView account/playback profile. Cookies and authentication headers remain in that website session.              |
-| Local preferences    | Stored in Tauri's application data directory. Named profiles separate settings, browser storage, and window geometry.                     |
-| Account display name | Shown in the local menu. The catalog bridge returns the active name without the account email.                                            |
-| Discord activity     | Sent through local Discord IPC when configured and permitted by presence preferences.                                                     |
-| Listening rooms      | Share track identifiers, timing, membership, and display names with the relay/participants. The operator can observe connection metadata. |
-| Lyrics               | Send title, artist, and duration to LRCLIB when you request a lookup.                                                                     |
+| Data or service      | How it is used                                                                                                                                                                                         |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Google sign-in       | Handled in a persistent WebView account/playback profile. Cookies and authentication headers remain in that website session.                                                                           |
+| Local preferences    | Stored in Tauri's application data directory. Named profiles separate settings, browser storage, and window geometry.                                                                                  |
+| Account display name | Shown in the local menu. The catalog bridge returns the active name without the account email.                                                                                                         |
+| Discord activity     | Sent through local Discord IPC when configured and permitted by presence preferences.                                                                                                                  |
+| Listening rooms      | Share track identifiers, timing, membership, and display names with the relay/participants. The operator can observe connection metadata.                                                              |
+| Lyrics               | Send title, artist, and duration to LRCLIB when you request a lookup.                                                                                                                                  |
+| Virtual microphone   | Captures the local playback WebView process and, only when enabled, the selected physical microphone. Sends mixed PCM to the selected Windows virtual cable; the room/control relay receives no audio. |
+| Remote/group control | Shares host playback state, public catalog metadata and authorized commands with approved controllers. Pairing credentials and relay visibility are documented in the shared-control guide.            |
 
-Audio streams through your own YouTube Music session. The app does not download, redistribute, or relay audio, remove ads, or grant Premium access.
+Music streams through your own YouTube Music session. Listening-room and control relays carry metadata and commands rather than audio. Optional virtual-mic routing sends local decoded audio to a Windows cable and whichever application you select to receive it. The app does not provide offline downloads, remove ads, or grant Premium access.
 
 The remote page has only two app commands: `player_event` and `catalog_result`. Rust validates origins, values, metadata, and pending catalog request IDs. The page cannot read preferences, receive local state broadcasts, run shell commands, or access arbitrary local files through the app's capability configuration.
 
@@ -357,8 +404,8 @@ For native changes, also run:
 ```sh
 pnpm build
 cargo fmt --all --check
-cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
 ```
 
 Build the bridge/interface before compiling Rust directly: the app embeds their generated assets. Both lockfiles are included. Protocol changes must regenerate [packages/protocol/src/generated.ts](packages/protocol/src/generated.ts); do not edit it by hand.
@@ -384,6 +431,8 @@ Named profiles allow multiple clients and isolate browser storage, preferences, 
 
 Tests cover the protocol, catalog matching/pagination, player acknowledgements, seeking, UI state, queue/privacy behavior, shortcut transactions, synchronization decisions, and the relay in Cloudflare's test runtime.
 
+Additional checks cover controller admission and permissions, pairing/revocation, public-catalog privacy, stale queue edits and reconnect behavior; virtual-mic opt-in/mute, buffer clearing, sample limiting, and clock-drift correction; and a live synthetic playback-process capture check. Hardware acceptance remains separate: installing a virtual cable and testing physical voice/calling-app output, Android background playback/account support, and macOS/Linux behavior cannot be established by unit tests.
+
 Native Windows checks exercised real catalog queries, playback, seeking, the global overlay, blur persistence, and mixer metadata. Google sign-in and Premium playback were confirmed by the user. Live Discord rendering, real two-account synchronization, clean-machine installation, and macOS/Linux behavior remain manual acceptance work. Read [docs/verification.md](docs/verification.md) for evidence and limits.
 
 ## Architecture
@@ -397,36 +446,47 @@ Rust desktop core
         +-- Discord IPC and native system media controls
         +-- settings, queue, shortcuts, tray, lyrics, and windows
         +-- optional WebSocket connection to the Cloudflare room relay
+        +-- LAN/relay host and approved remote/group controllers
+        +-- Windows process audio capture, optional mic mixer, virtual-cable output
+        +-- Android native playback service in feasibility builds
 ```
 
-| Path                      | Responsibility                                                                          |
-| ------------------------- | --------------------------------------------------------------------------------------- |
-| `apps/desktop/ui/`        | Music interface, player, preferences, mini-player, lyrics, and popup search             |
-| `apps/desktop/bridge/`    | Bridge executing inside the YouTube Music session                                       |
-| `apps/desktop/src-tauri/` | Rust state, commands, accounts/windows, queue, Discord, media controls, and room client |
-| `crates/protocol/`        | Rust wire types and TypeScript exporter                                                 |
-| `packages/protocol/`      | Generated TypeScript types                                                              |
-| `relay/`                  | Worker, room Durable Objects, invitation page, and runtime tests                        |
-| `.github/workflows/`      | Cross-platform checks and automatic releases for verified version tags                  |
-| `docs/`                   | Screenshots, verification evidence, and feature audit                                   |
+| Path                                | Responsibility                                                                          |
+| ----------------------------------- | --------------------------------------------------------------------------------------- |
+| `apps/desktop/ui/`                  | Music interface, player, preferences, mini-player, lyrics, and popup search             |
+| `apps/desktop/bridge/`              | Bridge executing inside the YouTube Music session                                       |
+| `apps/desktop/src-tauri/`           | Rust state, commands, accounts/windows, queue, Discord, media controls, and room client |
+| `crates/protocol/`                  | Rust wire types and TypeScript exporter                                                 |
+| `packages/protocol/`                | Generated TypeScript types                                                              |
+| `relay/`                            | Worker, room Durable Objects, invitation page, and runtime tests                        |
+| `.github/workflows/`                | Cross-platform checks and automatic releases for verified version tags                  |
+| `docs/`                             | Screenshots, verification evidence, and feature audit                                   |
+| `apps/desktop/src-tauri/src/audio/` | Windows capture, mixing, drift correction, device selection and transient sharing state |
+| `apps/controller/`                  | Browser controller assets bundled with the LAN host and served by the optional relay    |
+| `crates/control/`                   | Admission, pairing, permissions, bounded sessions and mutation deduplication            |
+| `crates/android-player/`            | Android playback service, WebView bridge and native media controls                      |
 
 The core sends serialized typed calls to the bridge. Catalog replies must match pending random request IDs. Tauri capabilities separate local windows from the remote page, and navigation checks use parsed origins/hosts.
 
 ## Troubleshooting
 
-| Problem                                       | What to check                                                                                                                                              |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Library is empty after sign-in**            | Wait for the connection refresh, then refresh Your library. Check the active account or use Refresh connection in the account controls.                    |
-| **Google rejects the account window**         | Record the error and version. Authentication availability is controlled by Google; avoid repeatedly signing in or copying account cookies as a workaround. |
-| **Quality shows Normal**                      | Check the active Premium entitlement, whether High was requested, and the available recording. Preferences reports the format actually playing.            |
-| **A shortcut does nothing**                   | Check conflicting apps or a second YTM Listen instance. Change or clear the combination in Keyboard shortcuts and save.                                    |
-| **Discord is not connected**                  | Enter a public Application ID, enable presence, and run the Discord desktop client. Discord controls final activity visibility.                            |
-| **Friends cannot find the room**              | Use the same relay origin and correct code. Confirm the host is connected. A restarted host should create a new room.                                      |
-| **Playback controls are locked**              | Room members follow their host. Leave the room to choose your own music.                                                                                   |
-| **Music continues after closing**             | Close to tray is enabled. Reopen from the tray or choose Quit YTM Listen.                                                                                  |
-| **Windows still shows an Edge mixer entry**   | Update to 0.3.2 or newer, fully quit the old process, open the updated app, and play a song. Audio identity is refreshed periodically.                     |
-| **Lyrics are missing or mismatched**          | Retry for the current recording. Lyrics depend on LRCLIB's catalog and track metadata.                                                                     |
-| **A package command differs from PowerShell** | Check pnpm is on PATH and the process PATH has no unmatched quote.                                                                                         |
+| Problem                                       | What to check                                                                                                                                                                                    |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Library is empty after sign-in**            | Wait for the connection refresh, then refresh Your library. Check the active account or use Refresh connection in the account controls.                                                          |
+| **Google rejects the account window**         | Record the error and version. Authentication availability is controlled by Google; avoid repeatedly signing in or copying account cookies as a workaround.                                       |
+| **Quality shows Normal**                      | Check the active Premium entitlement, whether High was requested, and the available recording. Preferences reports the format actually playing.                                                  |
+| **A shortcut does nothing**                   | Check conflicting apps or a second YTM Listen instance. Change or clear the combination in Keyboard shortcuts and save.                                                                          |
+| **Discord is not connected**                  | Enter a public Application ID, enable presence, and run the Discord desktop client. Discord controls final activity visibility.                                                                  |
+| **Friends cannot find the room**              | Use the same relay origin and correct code. Confirm the host is connected. A restarted host should create a new room.                                                                            |
+| **Playback controls are locked**              | Room members follow their host. Leave the room to choose your own music.                                                                                                                         |
+| **Music continues after closing**             | Close to tray is enabled. Reopen from the tray or choose Quit YTM Listen.                                                                                                                        |
+| **Windows still shows an Edge mixer entry**   | Update to 0.3.2 or newer, fully quit the old process, open the updated app, and play a song. Audio identity is refreshed periodically.                                                           |
+| **Lyrics are missing or mismatched**          | Retry for the current recording. Lyrics depend on LRCLIB's catalog and track metadata.                                                                                                           |
+| **A package command differs from PowerShell** | Check pnpm is on PATH and the process PATH has no unmatched quote.                                                                                                                               |
+| **No virtual microphone is available**        | Install a compatible virtual cable, restart if required, and refresh devices. Select its playback input in YTM Listen and recording output in the receiving app.                                 |
+| **Shared music is suppressed or quiet**       | Check player mute/volume, source gains, the receiving app's selected input, noise suppression and channel bitrate.                                                                               |
+| **A remote host is missing**                  | Ensure sharing is enabled, both devices can reach the selected LAN address, and the host allows TCP 9863/UDP 5353. Use a QR/full invitation or manual address if multicast discovery is blocked. |
+| **Android Google sign-in is rejected**        | This is a known embedded-browser blocker. Use Android as a controller for a signed-in desktop host; Android account/library support remains incomplete.                                          |
 
 Report the version, OS, steps, and visible error in [GitHub Issues](https://github.com/evoziosk/ytm/issues). Use a separate development profile where possible. Do not include passwords, cookies, authorization headers, or room reconnect credentials.
 
@@ -464,16 +524,22 @@ The app-owned queue and playback session are not fully restored yet. Google brow
 
 Updates currently use manually installed releases. A signed updater and its hosting/signing configuration are not included.
 
+### Can I send music and my voice to Discord or OBS?
+
+Windows source builds provide virtual-cable routing with optional mic mixing. Install a compatible cable and follow the [virtual microphone guide](docs/virtual-microphone.md). A receiving app can alter bitrate, channel count, and audio processing, so local PCM quality is not an end-to-end quality guarantee.
+
 ## Roadmap
 
 Next priorities focus on everyday listening:
 
-- **Play next / Add to queue** from search, collections, and popup search.
+- **More queue entry points**, including Play next / Add to queue from popup search.
 - **Session restoration** for queue, position, shuffle, and repeat.
 - **Library and playlist editing**, including save/unsave and adding/removing tracks.
 - **Sleep timer** and stop after the current song.
 - **Automatic lyrics** lookup, caching, and better version matching.
 - **Faster queue editing**, shortcut recording/conflict feedback, and pasted music links.
+- **Virtual-mic hardware acceptance**, optional music ducking/monitoring, and a future driver-distribution decision.
+- **Android account/playback design** that supports Google's sign-in policy, followed by physical-device background-hosting acceptance.
 
 These are recommendations, not completed features. See the [feature audit](docs/feature-audit.md) for priorities and gaps. Notifications, scrobbling, and signed automatic updates are also deferred.
 

@@ -1757,3 +1757,157 @@ h3,
   flex-wrap: wrap;
   padding: 24px 0;
 }
+.remote-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px;
+  margin-bottom: 20px;
+  background: #233b2e;
+  border-radius: 12px;
+}
+.device-picker-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: none;
+  border: 0;
+  color: var(--muted);
+  max-width: 100%;
+  margin: 0 auto 4px;
+  cursor: pointer;
+}
+.device-picker-button.connected {
+  color: var(--mint);
+}
+.device-picker-button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.device-dialog {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: 90dvh;
+  overflow: auto;
+  padding: 28px;
+}
+.device-close {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+.device-local {
+  width: 100%;
+  margin: 18px 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.remote-playing {
+  border-top-color: var(--mint);
+}
+
+@media (max-width: 700px) {
+  .mobile-app .sidebar {
+    inset: auto 0 0;
+    width: 100%;
+    height: calc(72px + env(safe-area-inset-bottom));
+    padding: 4px 8px env(safe-area-inset-bottom);
+    border-top: 1px solid var(--line);
+  }
+  .mobile-app .sidebar > :not(nav) {
+    display: none;
+  }
+  .mobile-app nav {
+    margin: 0;
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 4px;
+  }
+  .mobile-app nav button {
+    flex-shrink: 0;
+    min-width: 68px;
+    height: 60px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 8px;
+    font-size: 9px;
+  }
+  .mobile-app nav button.active::before {
+    display: none;
+  }
+  .mobile-app .main-column {
+    margin-left: 0;
+    width: 100%;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: 170px;
+  }
+  .mobile-app .now-playing {
+    left: 0;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(150px, 1fr);
+    min-height: 145px;
+    gap: 8px 12px;
+  }
+  .mobile-app .now-track {
+    max-width: 100%;
+    min-width: 0;
+  }
+  .mobile-app .now-track strong {
+    font-size: 13px;
+  }
+  .mobile-app .now-track p {
+    font-size: 11px;
+  }
+  .mobile-app .now-controls {
+    width: 100%;
+    min-width: 0;
+  }
+  .mobile-app .device-picker-button {
+    min-height: 36px;
+    font-size: 12px;
+  }
+  .mobile-app .now-playing .progress {
+    font-size: 10px;
+  }
+  .mobile-app .now-extras {
+    display: flex;
+    grid-column: 1/-1;
+    justify-content: flex-end;
+  }
+  .mobile-app .now-extras input {
+    width: 120px;
+    min-height: 32px;
+  }
+  .mobile-app .main-column {
+    padding-bottom: 250px;
+  }
+  .mobile-app .transport button {
+    min-width: 40px;
+    min-height: 40px;
+  }
+  .mobile-app .device-dialog {
+    padding: 24px 16px;
+  }
+  .mobile-app .save-bar {
+    left: 0;
+    bottom: calc(152px + env(safe-area-inset-bottom));
+  }
+  .mobile-app .topbar {
+    padding: 0 14px;
+  }
+  .mobile-app .content {
+    padding: 20px 14px 0;
+  }
+  .mobile-app .queue-track {
+    flex-wrap: wrap;
+  }
+  .mobile-app .queue-edit {
+    flex-wrap: wrap;
+  }
+}

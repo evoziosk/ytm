@@ -40,6 +40,7 @@ export interface PartyState {
   invite_url: string;
 }
 export interface Snapshot {
+  remote?: import('./playback-device').PlaybackDevice;
   player: PlaybackState;
   settings: Settings;
   party: PartyState;
@@ -57,6 +58,7 @@ export interface Snapshot {
   account: AccountStatus;
 }
 export const native = '__TAURI_INTERNALS__' in window;
+export const mobile = /Android/i.test(navigator.userAgent);
 export const defaults: Settings = {
   close_to_tray: true,
   autostart: false,

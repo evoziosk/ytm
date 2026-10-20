@@ -11,7 +11,23 @@ pub struct Lyrics {
 }
 #[tauri::command]
 pub async fn get_lyrics(core: State<'_, Core>) -> Result<Lyrics, String> {
-    let player = core.snapshot().player;
+    let remote = crate::control_client::status(&core);
+    let player = if remote.active {
+        let snapshot = remote.snapshot.ok_or("Waiting for the playback device")?;
+        ytm_protocol::PlaybackState {
+            track: snapshot.track.map(|track| ytm_protocol::TrackInfo {
+                video_id: track.video_id,
+                title: track.title,
+                artist: track.artist,
+                artwork: track.artwork,
+                ..Default::default()
+            }),
+            duration: snapshot.duration,
+            ..Default::default()
+        }
+    } else {
+        core.snapshot().player
+    };
     let track = player.track.ok_or("Play a song to look up lyrics")?;
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(12))

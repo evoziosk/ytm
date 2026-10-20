@@ -1,0 +1,14 @@
+[package]
+name = "tauri-plugin-ytm-player"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+links = "tauri-plugin-ytm-player"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[dependencies]
+tauri = { version = "2" }
+serde.workspace = true
+serde_json.workspace = true

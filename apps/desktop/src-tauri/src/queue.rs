@@ -43,7 +43,7 @@ pub fn next_index(
     }
 }
 
-fn edit(data: &mut Snapshot, action: &QueueAction) -> Result<(), String> {
+pub(crate) fn edit(data: &mut Snapshot, action: &QueueAction) -> Result<(), String> {
     match *action {
         QueueAction::Remove { index } => {
             if index >= data.queue.len() {
@@ -101,6 +101,7 @@ fn edit(data: &mut Snapshot, action: &QueueAction) -> Result<(), String> {
             data.queue_index = index;
         }
     }
+    data.queue_revision = data.queue_revision.wrapping_add(1);
     Ok(())
 }
 
@@ -110,6 +111,10 @@ pub async fn queue_action(
     core: State<'_, Core>,
     action: QueueAction,
 ) -> Result<(), String> {
+    let _guard = core.mutation.lock().await;
+    if crate::control_client::active(&core) {
+        return Err("Use the host queue in Remote control".into());
+    }
     let command = {
         let mut data = core.data.write().expect("state lock");
         if data.party.role == Some(Role::Member) {

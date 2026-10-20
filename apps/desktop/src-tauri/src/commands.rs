@@ -22,6 +22,9 @@ pub fn player_event(
     {
         return Err("Invalid player origin".into());
     }
+    accept_event(&app, &core, event)
+}
+pub(crate) fn accept_event(app: &AppHandle, core: &Core, event: PlayerEvent) -> Result<(), String> {
     if let PlayerEvent::CommandReply { id, error } = &event {
         if id.len() != 32 || !id.bytes().all(|b| b.is_ascii_hexdigit()) || error.len() > 2048 {
             return Err("Invalid playback reply".into());
@@ -48,6 +51,7 @@ pub fn player_event(
             let mut data = core.data.write().expect("state lock");
             if data.account.signed_in && !status.signed_in {
                 data.queue.clear();
+                data.queue_revision = data.queue_revision.wrapping_add(1);
                 data.queue_index = 0;
                 data.queue_playlist_id.clear();
                 data.previous_playlist = None;
@@ -63,7 +67,7 @@ pub fn player_event(
                 "Listening without an account".into()
             };
         }
-        core.emit(&app);
+        core.emit(app);
         return Ok(());
     }
     if let PlayerEvent::Audio { status } = &event {
@@ -77,7 +81,7 @@ pub fn player_event(
             return Err("Invalid audio status".into());
         }
         core.data.write().expect("state lock").audio = status.clone();
-        core.emit(&app);
+        core.emit(app);
         return Ok(());
     }
     let ended = matches!(&event, PlayerEvent::Ended { .. }) && !core.snapshot().player.ad;
@@ -124,10 +128,17 @@ pub fn player_event(
         }
     }
     let music_ended = ended && !state.ad;
-    core.update_player(&app, state);
-    if music_ended {
+    let controlling_remote = crate::control_client::active(core);
+    let silence_controller = controlling_remote && state.playing;
+    core.update_player(app, state);
+    if silence_controller {
+        let _ = dispatch(app, &PlayerCommand::Pause);
+    }
+    if music_ended && !controlling_remote {
         let handle = app.clone();
         tauri::async_runtime::spawn(async move {
+            let core = handle.state::<Core>();
+            let _guard = core.mutation.lock().await;
             let _ = crate::catalog::advance(&handle, true, true).await;
         });
     }
@@ -139,21 +150,8 @@ pub fn get_snapshot(core: State<Core>) -> Snapshot {
 }
 
 pub fn dispatch(app: &AppHandle, command: &PlayerCommand) -> Result<(), String> {
-    let main = app
-        .get_webview_window("main")
-        .ok_or("Player window unavailable")?;
-    if main
-        .url()
-        .map_err(|e| e.to_string())?
-        .origin()
-        .ascii_serialization()
-        != "https://music.youtube.com"
-    {
-        return Err("Open YouTube Music before using playback controls".into());
-    }
     let payload = serde_json::to_string(command).map_err(|e| e.to_string())?;
-    main.eval(format!("window.__YTM_LISTEN_COMMAND__?.({payload})"))
-        .map_err(|e| e.to_string())
+    crate::backend::evaluate(app, &format!("window.__YTM_LISTEN_COMMAND__?.({payload})"))
 }
 pub fn user_command(app: &AppHandle, command: &PlayerCommand) -> Result<(), String> {
     let handle = app.clone();
@@ -164,6 +162,17 @@ pub fn user_command(app: &AppHandle, command: &PlayerCommand) -> Result<(), Stri
     Ok(())
 }
 pub async fn perform_user_command(app: &AppHandle, command: PlayerCommand) -> Result<(), String> {
+    let core = app.state::<Core>();
+    let _guard = core.mutation.lock().await;
+    perform_serialized(app, command).await
+}
+pub(crate) async fn perform_serialized(
+    app: &AppHandle,
+    command: PlayerCommand,
+) -> Result<(), String> {
+    if crate::control_client::active(&app.state::<Core>()) {
+        return crate::control_client::playback(&app.state::<Core>(), command).await;
+    }
     if app.state::<Core>().snapshot().party.role == Some(Role::Member)
         && !matches!(
             &command,
@@ -271,14 +280,7 @@ pub async fn logout_account(app: AppHandle) -> Result<(), String> {
 }
 #[tauri::command]
 pub fn refresh_music(app: AppHandle) -> Result<(), String> {
-    app.get_webview_window("main")
-        .ok_or("Playback service unavailable")?
-        .navigate(
-            "https://music.youtube.com"
-                .parse()
-                .map_err(|_| "Invalid player URL")?,
-        )
-        .map_err(|e| e.to_string())
+    crate::backend::refresh(&app)
 }
 #[tauri::command]
 pub async fn party_connect(
@@ -287,6 +289,7 @@ pub async fn party_connect(
     code: String,
     hosting: bool,
 ) -> Result<(), String> {
+    let _guard = core.mutation.lock().await;
     crate::party::client::start(&app, &core, &code, hosting)
 }
 #[tauri::command]

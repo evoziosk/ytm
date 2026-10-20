@@ -6,3 +6,5 @@ target
 pnpm-lock.yaml
 packages/protocol/src/generated.ts
 apps/desktop/src-tauri/icons
+**/.tauri/
+crates/android-player/android/build/

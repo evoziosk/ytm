@@ -1,6 +1,6 @@
 # Virtual microphone integration plan
 
-Status: proposed; no audio capture or driver installation is implemented by this plan.
+Status: the first Windows capture, mixer, and UI implementation is present. See the [usage and verification notes](virtual-microphone.md). A separate virtual cable driver is required; driver installation is not bundled. Physical microphone, receiving-app, and long-session hardware acceptance remain pending.
 
 ## Intended behavior
 

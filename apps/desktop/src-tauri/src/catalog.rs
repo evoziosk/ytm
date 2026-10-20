@@ -35,6 +35,9 @@ pub async fn music_query(
     core: State<'_, Core>,
     request: CatalogRequest,
 ) -> Result<CatalogPage, String> {
+    if crate::control_client::active(&core) && !core.snapshot().account.signed_in {
+        return crate::control_client::catalog(&core, request).await;
+    }
     query(&app, &core, request).await
 }
 pub async fn query(
@@ -61,18 +64,6 @@ pub async fn query(
     {
         return Err("Invalid music request".into());
     }
-    let main = app
-        .get_webview_window("main")
-        .ok_or("Playback service is unavailable")?;
-    if main
-        .url()
-        .map_err(|e| e.to_string())?
-        .origin()
-        .ascii_serialization()
-        != "https://music.youtube.com"
-    {
-        return Err("Finish account sign-in, then return to your music.".into());
-    }
     let id = {
         use rand::Rng;
         let mut rng = rand::rng();
@@ -89,7 +80,10 @@ pub async fn query(
         pending.insert(id.clone(), sender);
     }
     let payload = serde_json::to_string(&request).map_err(|e| e.to_string())?;
-    if let Err(error) = main.eval(format!("window.__YTM_LISTEN_QUERY__?.({id:?}, {payload})")) {
+    if let Err(error) = crate::backend::evaluate(
+        app,
+        &format!("window.__YTM_LISTEN_QUERY__?.({id:?}, {payload})"),
+    ) {
         core.catalog_pending
             .lock()
             .expect("catalog lock")
@@ -125,6 +119,13 @@ pub fn catalog_result(
     {
         return Err("Invalid catalog origin".into());
     }
+    accept_reply(&app, &core, reply)
+}
+pub(crate) fn accept_reply(
+    app: &AppHandle,
+    core: &Core,
+    reply: CatalogReply,
+) -> Result<(), String> {
     if reply.id.len() != 32
         || reply.error.len() > 2048
         || reply.page.as_ref().is_some_and(|page| {
@@ -152,7 +153,7 @@ pub fn catalog_result(
             "Listening without an account"
         }
         .into();
-        core.emit(&app);
+        core.emit(app);
     }
     let _ = sender.send(result);
     Ok(())
@@ -179,6 +180,63 @@ pub async fn play_items(
         return Err("Invalid play queue".into());
     }
     let id = items[index].video_id.clone();
+    let _guard = core.mutation.lock().await;
+    if core.snapshot().party.role == Some(Role::Member) {
+        return Err("Leave your listening room to choose another track".into());
+    }
+    if crate::control_client::active(&core) {
+        let revision =
+            crate::control_client::queue_revision(&core).ok_or("Waiting for host state")?;
+        crate::control_client::request(
+            &core,
+            ytm_protocol::ControlCommand::EditQueue {
+                revision,
+                edit: ytm_protocol::RemoteQueueEdit::Insert {
+                    tracks: items[index..]
+                        .iter()
+                        .take(50)
+                        .map(crate::control::remote_track)
+                        .collect(),
+                    placement: ytm_protocol::QueuePlacement::Now,
+                },
+            },
+        )
+        .await?;
+        return Ok(());
+    }
+    let group = core
+        .control
+        .lock()
+        .expect("control lock")
+        .session
+        .as_ref()
+        .is_some_and(|s| s.mode == ytm_protocol::ControlMode::Group);
+    if group {
+        let command = {
+            let mut data = core.data.write().expect("state lock");
+            let revision = data.queue_revision;
+            crate::control::edit_remote(
+                &mut data,
+                revision,
+                &ytm_protocol::RemoteQueueEdit::Insert {
+                    tracks: vec![crate::control::remote_track(&items[index])],
+                    placement: ytm_protocol::QueuePlacement::Now,
+                },
+            )?
+        };
+        core.emit(&app);
+        if let Some(command) = command {
+            crate::playback::confirmed(&app, command).await?;
+        }
+        return Ok(());
+    }
+    let items = items
+        .into_iter()
+        .map(|mut item| {
+            item.key = ytm_control::secret();
+            item
+        })
+        .collect();
     {
         let mut data = core.data.write().expect("state lock");
         data.previous_playlist = data
@@ -187,6 +245,7 @@ pub async fn play_items(
             .as_ref()
             .map(|track| (track.video_id.clone(), track.playlist_id.clone()));
         data.queue = items;
+        data.queue_revision = data.queue_revision.wrapping_add(1);
         data.queue_index = index;
         data.queue_playlist_id = crate::settings::playlist_id(&playlist_id);
         if data.shuffle {
@@ -200,7 +259,10 @@ pub async fn play_items(
 pub async fn advance(app: &AppHandle, forward: bool, ended: bool) -> Result<bool, String> {
     let core = app.state::<Core>();
     let state = core.snapshot();
-    if state.queue.is_empty() || state.party.role == Some(Role::Member) {
+    if state.queue.is_empty()
+        || state.party.role == Some(Role::Member)
+        || crate::control_client::active(&core)
+    {
         return Ok(false);
     }
     let Some(index) = crate::queue::next_index(
@@ -214,7 +276,11 @@ pub async fn advance(app: &AppHandle, forward: bool, ended: bool) -> Result<bool
         return Ok(true);
     };
     let item = &state.queue[index];
-    core.data.write().expect("state lock").queue_index = index;
+    {
+        let mut data = core.data.write().expect("state lock");
+        data.queue_index = index;
+        data.queue_revision = data.queue_revision.wrapping_add(1);
+    }
     core.emit(app);
     if index == state.queue_index {
         crate::playback::confirmed(app, PlayerCommand::Seek { position: 0.0 }).await?;

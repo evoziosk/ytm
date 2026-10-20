@@ -20,6 +20,7 @@
     Repeat1,
   } from '@lucide/svelte';
   import { call, native, type Snapshot } from './api';
+  import { allowed, noDevice, queueEdit } from './playback-device';
   import type { CatalogKind, CatalogPage, MusicItem } from '@ytm/protocol';
   let {
     data,
@@ -27,12 +28,18 @@
     active = true,
     onError,
     onAccount,
+    remoteQueueTotal = 0,
+    onLoadDeviceQueue = async () => {},
+    onRefreshDeviceQueue = async () => {},
   }: {
     data: Snapshot;
     view?: 'home' | 'search' | 'library' | 'queue';
     active?: boolean;
     onError: (error: string) => void;
     onAccount: () => void;
+    remoteQueueTotal?: number;
+    onLoadDeviceQueue?: () => Promise<void>;
+    onRefreshDeviceQueue?: () => Promise<void>;
   } = $props();
   let query = $state('');
   let resultQuery = $state('');
@@ -123,6 +130,11 @@
     items.filter((item) => filter === 'all' || item.kind === filter),
   );
   const playable = $derived(visibleItems.filter((item) => item.video_id));
+  const device = $derived(data.remote ?? noDevice);
+  const canQueue = $derived(
+    data.party.role !== 'member' && allowed(device, 'queue'),
+  );
+  const canPlay = $derived(canQueue && allowed(device, 'transport'));
   const title = $derived(
     activeKind === 'search'
       ? `Results for "${resultQuery}"`
@@ -181,7 +193,7 @@
   $effect(() => {
     const target = view;
     const shown = active;
-    const account = `${data.account.signed_in}:${data.account.name}`;
+    const account = `${data.account.signed_in}:${data.account.name}:${device.active ? (device.snapshot?.session_id ?? 'pending') : 'local'}`;
     untrack(() => {
       if (target === previousView && account === accountKey) {
         if (!shown)
@@ -275,6 +287,22 @@
   }
   async function queueAction(action: Record<string, unknown>) {
     try {
+      if (device.active) {
+        if (!device.snapshot)
+          throw new Error('Waiting for the playback device');
+        await call('remote_request', {
+          command: {
+            type: 'edit_queue',
+            revision: device.snapshot.queue_revision,
+            edit: queueEdit(
+              data.queue,
+              action,
+              device.active ? remoteQueueTotal : data.queue.length,
+            ),
+          },
+        });
+        return;
+      }
       await call('queue_action', { action });
     } catch (error) {
       onError(String(error));
@@ -306,8 +334,31 @@
       onError(String(error));
     }
   }
+  async function addTrack(item: MusicItem, placement: 'now' | 'next' | 'end') {
+    try {
+      await call('queue_track', {
+        track: {
+          video_id: item.video_id,
+          title: item.title,
+          artist: item.artist || item.subtitle,
+          artwork: item.artwork,
+        },
+        placement,
+      });
+    } catch (error) {
+      onError(String(error));
+    }
+  }
   async function playAll() {
     try {
+      if (device.active && view === 'queue' && activeKind !== 'search') {
+        if (playable[0])
+          await queueAction({
+            type: 'select',
+            index: data.queue.findIndex((item) => item.key === playable[0].key),
+          });
+        return;
+      }
       if (playable.length)
         await call('play_items', {
           items: $state.snapshot(playable),
@@ -360,6 +411,11 @@
       </p>
     </div>
     <div class="music-heading-actions">
+      {#if view === 'queue' && device.active}<button
+          class="icon"
+          aria-label="Refresh host queue"
+          onclick={() => onRefreshDeviceQueue()}><RefreshCw size={17} /></button
+        >{/if}
       {#if history.length}<button
           class="icon"
           aria-label="Back to music"
@@ -382,13 +438,13 @@
       <button
         class="secondary small"
         aria-pressed={data.shuffle}
-        disabled={data.party.role === 'member'}
+        disabled={data.party.role === 'member' || device.active}
         onclick={() => queueAction({ type: 'shuffle', enabled: !data.shuffle })}
         ><Shuffle size={15} />Shuffle {data.shuffle ? 'on' : 'off'}</button
       >
       <button
         class="secondary small"
-        disabled={data.party.role === 'member'}
+        disabled={data.party.role === 'member' || device.active}
         onclick={() =>
           queueAction({
             type: 'repeat',
@@ -405,7 +461,9 @@
       >
       <button
         class="secondary small"
-        disabled={data.party.role === 'member' || data.queue.length < 2}
+        disabled={!canQueue ||
+          !allowed(device, 'replace_queue') ||
+          data.queue.length < 2}
         onclick={() => queueAction({ type: 'clear' })}
         ><Trash2 size={15} />Clear other tracks</button
       >
@@ -436,11 +494,15 @@
       >
       {#if playable.length}<button
           class="primary small"
-          disabled={data.party.role === 'member'}
+          disabled={!canPlay}
           onclick={playAll}
-          ><Play size={13} fill="currentColor" />{page?.continuation
-            ? 'Play loaded'
-            : 'Play all'}</button
+          ><Play size={13} fill="currentColor" />{device.active &&
+          playable.length > 50 &&
+          view !== 'queue'
+            ? 'Play first 50'
+            : page?.continuation
+              ? 'Play loaded'
+              : 'Play all'}</button
         >{/if}
     </div>
   {/if}
@@ -514,11 +576,13 @@
           >
             <button
               class="track-row"
-              class:current={data.player.track?.video_id === item.video_id}
-              disabled={data.party.role === 'member'}
+              class:current={view === 'queue' && activeKind !== 'search'
+                ? data.queue[data.queue_index]?.key === item.key
+                : data.player.track?.video_id === item.video_id}
+              disabled={!canPlay}
               onclick={() => select(item)}
               ><span class="track-number"
-                >{#if data.player.track?.video_id === item.video_id}<AudioLines
+                >{#if view === 'queue' && activeKind !== 'search' ? data.queue[data.queue_index]?.key === item.key : data.player.track?.video_id === item.video_id}<AudioLines
                     size={16}
                   />{:else}{index + 1}{/if}</span
               ><span class="track-art"
@@ -533,6 +597,25 @@
                 ></span
               ><Play size={15} /></button
             >
+            {#if item.video_id && view !== 'queue'}
+              <div class="queue-edit">
+                <button
+                  class="secondary"
+                  disabled={!canPlay}
+                  onclick={() => addTrack(item, 'now')}>Play now</button
+                >
+                <button
+                  class="secondary"
+                  disabled={!canPlay}
+                  onclick={() => addTrack(item, 'next')}>Play next</button
+                >
+                <button
+                  class="secondary"
+                  disabled={!canPlay}
+                  onclick={() => addTrack(item, 'end')}>Add to queue</button
+                >
+              </div>
+            {/if}
             {#if view === 'queue' && activeKind !== 'search'}
               {@const queueIndex = data.queue.findIndex(
                 (song) => song.key === item.key,
@@ -541,7 +624,7 @@
                 <button
                   class="icon"
                   aria-label={`Move ${item.title} up`}
-                  disabled={data.party.role === 'member' || queueIndex === 0}
+                  disabled={!canQueue || queueIndex === 0}
                   onclick={() =>
                     queueAction({
                       type: 'move',
@@ -552,8 +635,11 @@
                 <button
                   class="icon"
                   aria-label={`Move ${item.title} down`}
-                  disabled={data.party.role === 'member' ||
-                    queueIndex === data.queue.length - 1}
+                  disabled={!canQueue ||
+                    queueIndex === data.queue.length - 1 ||
+                    (device.active &&
+                      data.queue.length < remoteQueueTotal &&
+                      queueIndex === data.queue.length - 2)}
                   onclick={() =>
                     queueAction({
                       type: 'move',
@@ -564,8 +650,7 @@
                 <button
                   class="icon"
                   aria-label={`Remove ${item.title}`}
-                  disabled={data.party.role === 'member' ||
-                    queueIndex === data.queue_index}
+                  disabled={!canQueue || queueIndex === data.queue_index}
                   onclick={() =>
                     queueAction({ type: 'remove', index: queueIndex })}
                   ><Trash2 size={15} /></button
@@ -578,7 +663,7 @@
       <div class="music-grid">
         {#each visibleItems.slice(0, rendered) as item (item.key)}<button
             class="music-card"
-            disabled={data.party.role === 'member' && Boolean(item.video_id)}
+            disabled={!canPlay && Boolean(item.video_id)}
             onclick={() => select(item)}
             ><span class="music-cover" class:artist={item.kind === 'artist'}
               >{#if item.artwork}<img
@@ -603,6 +688,10 @@
       </div>
     {/if}
   {/if}
+  {#if view === 'queue' && device.active && data.queue.length < remoteQueueTotal}<button
+      class="secondary"
+      onclick={() => onLoadDeviceQueue()}>Load more queue</button
+    >{/if}
   {#if !loading && !failure}
     <div class="catalog-pagination">
       {#if visibleItems.length > rendered}<button

@@ -1,4 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
+import { ControlSession } from './control';
+export { ControlSession };
 import {
   parseClientMessage,
   validRoom,
@@ -8,6 +10,8 @@ import {
 } from '@ytm/protocol';
 
 export interface Env {
+  CONTROL: DurableObjectNamespace<ControlSession>;
+  ASSETS: Fetcher;
   ROOM: DurableObjectNamespace<Room>;
   RELEASES_URL: string;
 }
@@ -34,6 +38,27 @@ export default {
     if (request.method !== 'GET')
       return new Response('Method not allowed', { status: 405 });
     if (url.pathname === '/health') return json({ ok: true, protocol: 1 });
+    if (/^\/controller\/(?:controller\.(?:js|css))?$/.test(url.pathname)) {
+      const path =
+        url.pathname === '/controller/'
+          ? '/'
+          : url.pathname.slice('/controller'.length);
+      const asset = await env.ASSETS.fetch(
+        new Request(new URL(path, url.origin), request),
+      );
+      const headers = new Headers(asset.headers);
+      headers.set(
+        'Content-Security-Policy',
+        "default-src 'self'; script-src 'self'; style-src 'self'; img-src https:; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+      );
+      headers.set('Referrer-Policy', 'no-referrer');
+      headers.set('X-Content-Type-Options', 'nosniff');
+      headers.set('Cache-Control', 'no-store');
+      return new Response(asset.body, { status: asset.status, headers });
+    }
+    const control = /^\/control\/([a-f0-9]{64})$/.exec(url.pathname);
+    if (control)
+      return env.CONTROL.get(env.CONTROL.idFromName(control[1])).fetch(request);
     const match = /^\/(room|join)\/([A-Z2-9]{6,8})$/.exec(url.pathname);
     if (!match || !validRoom(match[2]))
       return new Response('Not found', { status: 404 });

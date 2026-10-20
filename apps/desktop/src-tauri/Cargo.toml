@@ -14,32 +14,44 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-tauri = { version = "2", features = ["tray-icon", "image-png"] }
-tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
-tauri-plugin-window-state = "2"
+tauri = { version = "2", features = ["image-png"] }
 tauri-plugin-store = "2"
-tauri-plugin-autostart = "2"
 tauri-plugin-deep-link = "2"
-tauri-plugin-global-shortcut = "2"
 tauri-plugin-opener = "2"
 serde.workspace = true
 serde_json.workspace = true
 ytm-protocol.workspace = true
+ytm-control = { path = "../../../crates/control" }
+axum = { version = "0.8", features = ["ws"] }
+if-addrs = "0.14"
 tokio = { version = "1", features = ["sync", "time", "rt-multi-thread", "macros", "net"] }
 tokio-tungstenite = { version = "0.28", features = ["rustls-tls-webpki-roots"] }
 futures-util = "0.3"
-discord-rich-presence = "1.1"
-souvlaki = { version = "0.8", default-features = false, features = ["use_zbus"] }
 rand = "0.9"
 url = "2"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
+mdns-sd = "0.21.6"
 
 [target.'cfg(target_os = "windows")'.dependencies]
+windows-core = "0.62"
 webview2-com = "0.39"
-windows = { version = "0.62", features = ["Win32_Media_Audio", "Win32_System_Com", "Win32_System_Com_StructuredStorage"] }
+windows = { version = "0.62", features = ["Win32_Media_Audio", "Win32_System_Com", "Win32_System_Com_StructuredStorage", "Win32_System_Variant", "Win32_Devices_FunctionDiscovery", "Win32_UI_Shell_PropertiesSystem", "Wdk_System_SystemServices", "Win32_System_SystemInformation"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # deep-link 2.6.2 uses the two-field ParseOption API; 0.21.2+ added required fields.
 rust-ini = "=0.21.1"
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
+tauri-plugin-window-state = "2"
+tauri-plugin-autostart = "2"
+tauri-plugin-global-shortcut = "2"
+discord-rich-presence = "1.1"
+souvlaki = { version = "0.8", default-features = false, features = ["use_zbus"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+tauri-plugin-barcode-scanner = "2.5.3"
+tauri-plugin-ytm-player = { path = "../../../crates/android-player" }

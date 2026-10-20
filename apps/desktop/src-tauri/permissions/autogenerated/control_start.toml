@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-control-start"
+description = "Enables the control_start command without any pre-configured scope."
+commands.allow = ["control_start"]
+
+[[permission]]
+identifier = "deny-control-start"
+description = "Denies the control_start command without any pre-configured scope."
+commands.deny = ["control_start"]

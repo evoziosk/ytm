@@ -7,6 +7,8 @@ on:
 permissions:
   contents: read
 jobs:
+  android:
+    uses: ./.github/workflows/android.yml
   web:
     runs-on: ubuntu-24.04
     steps:

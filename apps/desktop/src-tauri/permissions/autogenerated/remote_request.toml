@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-remote-request"
+description = "Enables the remote_request command without any pre-configured scope."
+commands.allow = ["remote_request"]
+
+[[permission]]
+identifier = "deny-remote-request"
+description = "Denies the remote_request command without any pre-configured scope."
+commands.deny = ["remote_request"]

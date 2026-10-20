@@ -1,0 +1,74 @@
+name: Android feasibility APK
+on:
+  workflow_call:
+    inputs:
+      release:
+        type: boolean
+        default: false
+    secrets:
+      ANDROID_KEYSTORE_BASE64:
+        required: false
+      ANDROID_STORE_PASSWORD:
+        required: false
+      ANDROID_KEY_ALIAS:
+        required: false
+      ANDROID_KEY_PASSWORD:
+        required: false
+  workflow_dispatch:
+    inputs:
+      release:
+        description: Build a maintainer-signed APK after physical acceptance
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;28.2.13676358'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: android
+      - run: pnpm install --frozen-lockfile
+      - run: chmod +x apps/desktop/src-tauri/gen/android/gradlew
+      - name: Prepare maintainer signing
+        if: inputs.release
+        env:
+          ACCEPTED: ${{ vars.ANDROID_ACCEPTANCE_PASSED }}
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          test "$ACCEPTED" = true || { echo 'Physical Android acceptance must pass before a release build.'; exit 1; }
+          test -n "$KEYSTORE" && test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD"
+          printf '%s' "$KEYSTORE" | base64 --decode > "$RUNNER_TEMP/ytm-release.keystore"
+      - name: Build APK
+        run: pnpm --filter @ytm/desktop tauri android build ${{ inputs.release && '' || '--debug' }} --target aarch64 --apk
+        env:
+          NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/28.2.13676358
+          CARGO_PROFILE_DEV_STRIP: debuginfo
+          YTM_ANDROID_KEYSTORE: ${{ inputs.release && format('{0}/ytm-release.keystore', runner.temp) || '' }}
+          YTM_ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          YTM_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          YTM_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ytm-listen-android-${{ inputs.release && 'signed' || 'feasibility' }}-arm64
+          path: apps/desktop/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error

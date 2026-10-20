@@ -33,6 +33,12 @@ pub fn leave(app: &AppHandle, core: &Core) {
     core.emit(app);
 }
 pub fn start(app: &AppHandle, core: &Core, input: &str, hosting: bool) -> Result<(), String> {
+    if crate::control_client::active(core) {
+        return Err("Disconnect from the remote host before joining a room".into());
+    }
+    if core.control.lock().expect("control lock").session.is_some() {
+        return Err("End remote/group control before joining a listening room".into());
+    }
     let settings = core.snapshot().settings;
     if settings.relay_url.is_empty() {
         return Err("Set your relay URL in Settings → Listen together first".into());
@@ -70,6 +76,7 @@ pub fn start(app: &AppHandle, core: &Core, input: &str, hosting: bool) -> Result
         data.pending_room = None;
         if !hosting {
             data.queue.clear();
+            data.queue_revision = data.queue_revision.wrapping_add(1);
             data.queue_playlist_id.clear();
             data.previous_playlist = None;
             data.queue_index = 0;
