@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, tick } from 'svelte';
   import { getCurrentWindow } from '@tauri-apps/api/window';
   import { version as appVersion } from '../package.json';
   import {
@@ -86,6 +86,18 @@
     | 'about';
   let tab = $state<Tab>(panel === 'party' ? 'party' : 'overview');
   let musicView = $state<'home' | 'search' | 'library' | 'queue'>('home');
+  let searchQuery = $state('');
+  let musicComponent: Music | undefined = $state();
+  async function searchCatalog(event: SubmitEvent) {
+    event.preventDefault();
+    const submitted = searchQuery.trim();
+    if (!submitted) return;
+    tab = 'search';
+    await tick();
+    searchQuery = submitted;
+    await tick();
+    musicComponent?.searchFromHeader();
+  }
   $effect(() => {
     if (
       tab === 'overview' ||
@@ -573,20 +585,35 @@
           ></span
         ></a
       >
-      <div class="workspace-label">YOUR MUSIC, AT HOME</div>
+      <div class="workspace-label">BROWSE MUSIC</div>
       <nav aria-label="Main navigation">
-        {#each nav as item}<button
-            class:active={tab === item.id}
-            onclick={() => (tab = item.id)}
-            ><item.icon
-              size={18}
-              strokeWidth={1.7}
-            />{item.label}{#if item.id === 'party'}<span class="nav-new"
-                >NEW</span
-              >{/if}</button
+        {#each nav as item, index}
+          {#if index === 4}<div class="nav-section-label">
+              STAY CONNECTED
+            </div>{/if}
+          {#if item.id === 'hotkeys' || (mobile && item.id === 'general')}<div
+              class="nav-section-label"
+            >
+              YOUR SETUP
+            </div>{/if}
+          <button class:active={tab === item.id} onclick={() => (tab = item.id)}
+            ><item.icon size={18} strokeWidth={1.7} />{item.label}</button
           >{/each}
       </nav>
       <div class="sidebar-bottom">
+        <div class="sidebar-track">
+          {@render artwork()}
+          <div class="truncate">
+            <strong>{track?.title ?? 'Your listening space'}</strong>
+            <p>{track?.artist ?? 'Make it your own.'}</p>
+          </div>
+          {#if track && !device.active}<button
+              class="icon"
+              aria-label="Like song from sidebar"
+              onclick={() => command({ type: 'like' })}
+              ><Heart size={15} /></button
+            >{/if}
+        </div>
         <div class="quiet-card">
           <span class="quiet-icon"><Headphones size={21} /></span><strong
             >A space for your music.</strong
@@ -608,13 +635,36 @@
     </aside>
     <div class="main-column">
       <header class="topbar">
-        <div class="breadcrumb">
-          <span
-            >{tab === 'general'
-              ? 'Preferences'
-              : tab === 'about'
-                ? 'About'
-                : nav.find((n) => n.id === tab)?.label}</span
+        <div class="topbar-browse">
+          <button
+            class="icon back-home"
+            aria-label="Back to Home"
+            disabled={tab === 'overview'}
+            onclick={() => (tab = 'overview')}><ArrowRight size={17} /></button
+          >
+          <form class="header-search" onsubmit={searchCatalog}>
+            <Search size={15} /><input
+              aria-label="Search music"
+              bind:value={searchQuery}
+              placeholder="Search your next favorite"
+              autocomplete="off"
+            /><button
+              aria-label="Search"
+              disabled={!searchQuery.trim()}
+              type="submit"><ArrowRight size={14} /></button
+            >
+          </form>
+        </div>
+        <div class="discovery-tabs" role="group" aria-label="Browse music">
+          <button
+            class:chosen={tab === 'overview'}
+            onclick={() => (tab = 'overview')}>Discover</button
+          ><button
+            class:chosen={tab === 'library'}
+            onclick={() => (tab = 'library')}>Your library</button
+          ><button
+            class:chosen={tab === 'queue'}
+            onclick={() => (tab = 'queue')}>Queue</button
           >
         </div>
         <AccountMenu
@@ -655,6 +705,9 @@
           )}
         >
           <Music
+            bind:this={musicComponent}
+            bind:query={searchQuery}
+            headerSearch
             {data}
             remoteQueueTotal={deviceQueue?.total ?? 0}
             onLoadDeviceQueue={() => loadDeviceQueue(true)}
@@ -668,6 +721,14 @@
             onAccount={() => (accountOpen = true)}
           />
           <aside class="listening-rail" aria-label="Your listening space">
+            <div class="rail-heading">
+              <h2>Now playing</h2>
+              <button
+                class="icon"
+                aria-label="Show playback queue"
+                onclick={() => (tab = 'queue')}><ListMusic size={17} /></button
+              >
+            </div>
             <section class="listening-card">
               {#if track?.artwork}
                 <div

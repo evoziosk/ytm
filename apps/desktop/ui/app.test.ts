@@ -122,7 +122,7 @@ it('restores a saved blur choice on launch', async () => {
   expect(call).not.toHaveBeenCalledWith('set_window_blur', expect.anything());
 });
 
-it('keeps the music component and query through Preferences without showing About on Home', async () => {
+it('keeps header search available and preserves its query through Preferences', async () => {
   component = mount(App, { target: document.body });
   await vi.waitFor(() =>
     expect(call).toHaveBeenCalledWith('music_query', expect.anything()),
@@ -144,11 +144,43 @@ it('keeps the music component and query through Preferences without showing Abou
   });
   flushSync(() => navigation('Preferences').click());
   expect(document.querySelector('[aria-label="Search music"]')).toBe(input);
-  expect(input.closest('[hidden]')).not.toBeNull();
+  expect(input.closest('[hidden]')).toBeNull();
   flushSync(() => navigation('Search').click());
   expect(
     document.querySelector<HTMLInputElement>('[aria-label="Search music"]')
       ?.value,
   ).toBe('Saved query');
   expect(input.closest('[hidden]')).toBeNull();
+});
+
+it('searches from Preferences in the music view without losing the submitted query', async () => {
+  component = mount(App, { target: document.body });
+  await vi.waitFor(() =>
+    expect(call).toHaveBeenCalledWith('music_query', expect.anything()),
+  );
+  navigate('Preferences');
+  const input = document.querySelector<HTMLInputElement>(
+    '[aria-label="Search music"]',
+  )!;
+  flushSync(() => {
+    input.value = 'Massive Attack';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.form!.dispatchEvent(
+      new Event('submit', { bubbles: true, cancelable: true }),
+    );
+  });
+  await vi.waitFor(() =>
+    expect(call).toHaveBeenCalledWith('music_query', {
+      request: {
+        kind: 'search',
+        query: 'Massive Attack',
+        browse_id: '',
+        continuation: '',
+      },
+    }),
+  );
+  expect(
+    document.querySelector('.music-workspace')?.hasAttribute('hidden'),
+  ).toBe(false);
+  expect(input.value).toBe('Massive Attack');
 });

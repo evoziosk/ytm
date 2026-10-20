@@ -31,6 +31,8 @@
     remoteQueueTotal = 0,
     onLoadDeviceQueue = async () => {},
     onRefreshDeviceQueue = async () => {},
+    query = $bindable(''),
+    headerSearch = false,
   }: {
     data: Snapshot;
     view?: 'home' | 'search' | 'library' | 'queue';
@@ -40,8 +42,9 @@
     remoteQueueTotal?: number;
     onLoadDeviceQueue?: () => Promise<void>;
     onRefreshDeviceQueue?: () => Promise<void>;
+    query?: string;
+    headerSearch?: boolean;
   } = $props();
-  let query = $state('');
   let resultQuery = $state('');
   let scroll = 0;
   let wasActive = true;
@@ -130,6 +133,10 @@
     items.filter((item) => filter === 'all' || item.kind === filter),
   );
   const playable = $derived(visibleItems.filter((item) => item.video_id));
+  const homeLanding = $derived(
+    view === 'home' && activeKind === 'home' && !browseId,
+  );
+  const featured = $derived(items.find((item) => item.artwork) ?? items[0]);
   const device = $derived(data.remote ?? noDevice);
   const canQueue = $derived(
     data.party.role !== 'member' && allowed(device, 'queue'),
@@ -312,6 +319,9 @@
     event.preventDefault();
     if (query.trim()) void load('search');
   }
+  export function searchFromHeader() {
+    if (query.trim()) void load('search');
+  }
   async function select(item: MusicItem) {
     if (!item.video_id) {
       if (item.browse_id) await load('browse', item.browse_id, item.title);
@@ -374,24 +384,27 @@
   }
 </script>
 
-<div class="music-page">
-  <div class="music-search-row">
-    <form class="music-search" onsubmit={search}>
-      <Search size={19} /><input
-        aria-label="Search music"
-        bind:value={query}
-        placeholder="Search songs, artists, albums…"
-        autocomplete="off"
-      /><button
-        type="submit"
-        disabled={loading || !query.trim()}
-        aria-label="Search"
-        >{#if loading}<LoaderCircle class="spin" size={17} />{:else}<ArrowRight
-            size={18}
-          />{/if}</button
-      >
-    </form>
-  </div>
+<div class="music-page" class:home-landing={homeLanding}>
+  {#if !headerSearch}
+    <div class="music-search-row">
+      <form class="music-search" onsubmit={search}>
+        <Search size={19} /><input
+          aria-label="Search music"
+          bind:value={query}
+          placeholder="Search songs, artists, albums…"
+          autocomplete="off"
+        /><button
+          type="submit"
+          disabled={loading || !query.trim()}
+          aria-label="Search"
+          >{#if loading}<LoaderCircle
+              class="spin"
+              size={17}
+            />{:else}<ArrowRight size={18} />{/if}</button
+        >
+      </form>
+    </div>
+  {/if}
   <div class="music-page-heading">
     <div>
       <div class="eyebrow">
@@ -401,7 +414,7 @@
             ? 'KEEP THE GOOD THINGS COMING'
             : 'FIND YOUR FREQUENCY'}
       </div>
-      <h1>{title}<span class="mint">.</span></h1>
+      <h1>{homeLanding ? 'Discover' : title}<span class="mint">.</span></h1>
       <p>
         {view === 'queue'
           ? 'The soundtrack you have lined up.'
@@ -429,6 +442,82 @@
         >{/if}
     </div>
   </div>
+  {#if homeLanding}
+    <section class="discovery-feature" aria-label="Featured music">
+      <div class="discovery-feature-heading">
+        <h2>In the spotlight</h2>
+        <span>Something worth a listen</span>
+      </div>
+      <div class="discovery-feature-body">
+        <button
+          class="spotlight-art"
+          disabled={!featured || (!canPlay && Boolean(featured.video_id))}
+          aria-label={featured
+            ? `Explore ${featured.title}`
+            : 'Featured music will appear here'}
+          onclick={() => featured && select(featured)}
+        >
+          {#if featured?.artwork}<img
+              src={featured.artwork}
+              alt=""
+              referrerpolicy="no-referrer"
+            />{:else}<div class="spotlight-record">
+              <Disc3 size={110} strokeWidth={0.65} />
+            </div>{/if}
+          <span class="spotlight-shade"></span>
+          <span class="spotlight-copy"
+            ><small
+              >{featured?.kind === 'album'
+                ? 'ALBUM SPOTLIGHT'
+                : featured?.kind === 'playlist'
+                  ? 'PLAYLIST SPOTLIGHT'
+                  : 'YOUR DAILY SOUNDTRACK'}</small
+            ><strong>{featured?.title ?? 'Find your frequency.'}</strong><span
+              >{featured?.artist ||
+                featured?.subtitle ||
+                'A whole world of music. Make it yours.'}</span
+            ></span
+          >
+          {#if featured}<span class="spotlight-play"
+              >{#if featured.video_id}<Play
+                  size={21}
+                  fill="currentColor"
+                />{:else}<ArrowRight size={21} />{/if}</span
+            >{/if}
+        </button>
+        <div class="spotlight-picks">
+          <div class="eyebrow">ON YOUR RADAR</div>
+          {#each items.slice(0, 4) as item, index (item.key)}
+            <button
+              class="spotlight-pick"
+              disabled={!canPlay && Boolean(item.video_id)}
+              onclick={() => select(item)}
+              ><span class="spotlight-index"
+                >{String(index + 1).padStart(2, '0')}</span
+              ><span class="track-description"
+                ><strong>{item.title}</strong><small
+                  >{item.artist || item.subtitle || item.kind}</small
+                ></span
+              ><Play size={13} fill="currentColor" /></button
+            >
+          {:else}
+            <div class="spotlight-welcome">
+              <AudioLines size={24} strokeWidth={1.2} />
+              <h3>A sound for every mood.</h3>
+              <p>
+                Search for a favorite artist or discover an album to get
+                started.
+              </p>
+            </div>
+          {/each}
+        </div>
+      </div>
+    </section>
+    {#if items.length}<div class="discovery-section-heading">
+        <h2>Made for your rotation</h2>
+        <span>{items.length} picks to explore</span>
+      </div>{/if}
+  {/if}
   {#if view === 'queue' && activeKind !== 'search' && data.queue.length}
     <div
       class="queue-options button-row"
