@@ -112,148 +112,217 @@
 </script>
 
 <section class="sharing">
-  <div class="eyebrow">ONE HOST. SHARED CONTROLS.</div>
-  <h1>
-    {mode === 'personal' ? 'Remote control' : 'Group control'}<span class="mint"
-      >.</span
-    >
-  </h1>
-  <p>
-    {mode === 'personal'
-      ? 'Pair your own devices with this player. Approved devices can reconnect until you revoke them.'
-      : 'Invite guests to control this player. Every new group session requires host approval.'}
-  </p>
-  <p>
-    Music plays on this host’s selected audio output. Everyone else sends
-    commands.
-  </p>
+  <header class="sharing-intro">
+    <div class="eyebrow">ONE HOST. SHARED CONTROLS.</div>
+    <h1>
+      {mode === 'personal' ? 'Remote control' : 'Group control'}<span
+        class="mint">.</span
+      >
+    </h1>
+    <p>
+      {mode === 'personal'
+        ? 'Pair your own devices with this player. Approved devices can reconnect until you revoke them.'
+        : 'Invite guests to control this player. Every new group session requires host approval.'}
+    </p>
+    <p>
+      Music plays on this host’s selected audio output. Everyone else sends
+      commands.
+    </p>
+  </header>
   {#if error}<p class="failure" role="alert">{error}</p>{/if}
   {#if status.discovery_error}<p class="failure" role="status">
       {status.discovery_error}
     </p>{/if}
-  {#if !status.session_id}
-    <label class="option"
-      ><input type="checkbox" bind:checked={relay} /> Also connect through the configured
-      Cloudflare relay</label
-    >
-    <button
-      class="primary"
-      disabled={busy || !native}
-      onclick={() => run('control_start', { mode, relay })}
-      >Start {mode === 'personal' ? 'personal remote' : 'group'} sharing</button
-    >
-  {:else}
-    <h2>This device is the host</h2>
-    <p>
-      {status.mode === 'personal' ? 'Personal remote' : 'Group control'} session ·
-      {status.relay_status || 'LAN only'}
-    </p>
-    <button disabled={busy} onclick={() => run('control_end')}
-      >End sharing and disconnect everyone</button
-    >
-    <h2>Invite a controller</h2>
-    <p>
-      This host appears under Nearby devices in the app's player device picker.
-      Each new device still needs your approval. QR codes and manual addresses
-      are available if your network blocks discovery.
-    </p>
-    <label
-      >Connection address<select bind:value={selected}
-        >{#each status.links as link}<option value={link}
-            >{link.split('/#')[0].split('/controller/')[0]}</option
-          >{/each}</select
-      ></label
-    >
-    {#if qr}<img
-        src={qr}
-        alt="Scan to request admission to this host"
-        width="240"
-        height="240"
-      />{/if}
-    <input aria-label="Invitation link" readonly value={selected} />
-    <div class="actions">
-      <button
-        onclick={() =>
-          navigator.clipboard
-            .writeText(selected)
-            .catch((e) => (error = String(e)))}>Copy invitation link</button
-      ><button disabled={busy} onclick={() => run('control_rotate')}
-        >Rotate invitation</button
-      >
+  <div class="sharing-session">
+    <div class="eyebrow">
+      {status.session_id ? 'YOUR CONNECTION' : 'GET CONNECTED'}
     </div>
-    <p>
-      Open or scan the link on a trusted network, then approve the device below.
-      Leave your listening room before switching modes.
-    </p>
-    <h2>Participants</h2>
-    {#if !status.participants.length}<p>Waiting for admission requests.</p>{/if}
-    {#each status.participants as peer (peer.id)}
-      <article>
-        <h3>{peer.name}</h3>
-        <p>
-          {peer.approved
-            ? peer.connected
-              ? 'Connected'
-              : 'Disconnected'
-            : 'Awaiting approval'}
-        </p>
-        {#if !peer.approved}<button
+    {#if !status.session_id}
+      <h2>Your music. Within reach.</h2>
+      <label class="option"
+        ><input type="checkbox" bind:checked={relay} /> Also connect through the configured
+        Cloudflare relay</label
+      >
+      <button
+        class="primary"
+        disabled={busy || !native}
+        onclick={() => run('control_start', { mode, relay })}
+        >Start {mode === 'personal' ? 'personal remote' : 'group'} sharing</button
+      >
+    {:else}
+      <h2>This device is the host</h2>
+      <p>
+        {status.mode === 'personal' ? 'Personal remote' : 'Group control'} session
+        ·
+        {status.relay_status || 'LAN only'}
+      </p>
+      <button disabled={busy} onclick={() => run('control_end')}
+        >End sharing and disconnect everyone</button
+      >
+      <h2>Invite a controller</h2>
+      <p>
+        This host appears under Nearby devices in the app's player device
+        picker. Each new device still needs your approval. QR codes and manual
+        addresses are available if your network blocks discovery.
+      </p>
+      <label
+        >Connection address<select bind:value={selected}
+          >{#each status.links as link}<option value={link}
+              >{link.split('/#')[0].split('/controller/')[0]}</option
+            >{/each}</select
+        ></label
+      >
+      {#if qr}<img
+          src={qr}
+          alt="Scan to request admission to this host"
+          width="240"
+          height="240"
+        />{/if}
+      <input aria-label="Invitation link" readonly value={selected} />
+      <div class="actions">
+        <button
+          onclick={() =>
+            navigator.clipboard
+              .writeText(selected)
+              .catch((e) => (error = String(e)))}>Copy invitation link</button
+        ><button disabled={busy} onclick={() => run('control_rotate')}
+          >Rotate invitation</button
+        >
+      </div>
+      <p>
+        Open or scan the link on a trusted network, then approve the device
+        below. Leave your listening room before switching modes.
+      </p>
+      <h2>Participants</h2>
+      {#if !status.participants.length}<p>
+          Waiting for admission requests.
+        </p>{/if}
+      {#each status.participants as peer (peer.id)}
+        <article>
+          <h3>{peer.name}</h3>
+          <p>
+            {peer.approved
+              ? peer.connected
+                ? 'Connected'
+                : 'Disconnected'
+              : 'Awaiting approval'}
+          </p>
+          {#if !peer.approved}<button
+              disabled={busy}
+              onclick={() =>
+                run('control_participant', {
+                  id: peer.id,
+                  permissions: defaultPermissions,
+                })}>Approve device</button
+            >
+          {:else}<div class="permissions">
+              {#each Object.entries(permissionLabels) as [key, label]}<label
+                  ><input
+                    type="checkbox"
+                    disabled={busy}
+                    checked={peer.permissions[key as keyof ControlPermissions]}
+                    onchange={(e) =>
+                      permission(
+                        peer,
+                        key as keyof ControlPermissions,
+                        e.currentTarget.checked,
+                      )}
+                  />{label}</label
+                >{/each}
+            </div>{/if}
+          <button
             disabled={busy}
             onclick={() =>
-              run('control_participant', {
-                id: peer.id,
-                permissions: defaultPermissions,
-              })}>Approve device</button
+              run('control_participant', { id: peer.id, permissions: null })}
+            >{peer.approved ? 'Remove and revoke' : 'Reject request'}</button
           >
-        {:else}<div class="permissions">
-            {#each Object.entries(permissionLabels) as [key, label]}<label
-                ><input
-                  type="checkbox"
-                  disabled={busy}
-                  checked={peer.permissions[key as keyof ControlPermissions]}
-                  onchange={(e) =>
-                    permission(
-                      peer,
-                      key as keyof ControlPermissions,
-                      e.currentTarget.checked,
-                    )}
-                />{label}</label
-              >{/each}
-          </div>{/if}
-        <button
+        </article>
+      {/each}
+    {/if}
+  </div>
+  <div class="saved-devices">
+    <div class="eyebrow">YOUR DEVICES</div>
+    <h2>Paired personal devices</h2>
+    {#if !status.paired.length}<p>No saved devices.</p>{/if}
+    {#each status.paired as device}<article>
+        <strong>{device.name}</strong><button
           disabled={busy}
           onclick={() =>
-            run('control_participant', { id: peer.id, permissions: null })}
-          >{peer.approved ? 'Remove and revoke' : 'Reject request'}</button
+            run('control_participant', { id: device.id, permissions: null })}
+          >Revoke device</button
         >
-      </article>
-    {/each}
-  {/if}
-  <h2>Paired personal devices</h2>
-  {#if !status.paired.length}<p>No saved devices.</p>{/if}
-  {#each status.paired as device}<article>
-      <strong>{device.name}</strong><button
-        disabled={busy}
-        onclick={() =>
-          run('control_participant', { id: device.id, permissions: null })}
-        >Revoke device</button
-      >
-    </article>{/each}
+      </article>{/each}
+  </div>
 </section>
 
 <style>
   .sharing {
-    max-width: 800px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(240px, 1fr);
+    gap: 24px;
+    margin-top: 26px;
+    align-items: start;
+  }
+  .sharing-intro {
+    grid-column: 1 / -1;
+    max-width: 700px;
+    margin-bottom: 10px;
+  }
+  .sharing-session,
+  .saved-devices {
+    min-width: 0;
+    padding: 28px;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: linear-gradient(135deg, #34273855, #24203080);
+    box-shadow: var(--glass-shadow);
+    backdrop-filter: blur(28px);
+  }
+  .sharing-session > .eyebrow,
+  .saved-devices > .eyebrow {
+    margin-bottom: 20px;
+  }
+  .saved-devices h2,
+  .sharing-session > h2:first-of-type {
+    margin-top: 0;
+  }
+  .saved-devices p {
+    margin-top: 16px;
+  }
+  .sharing-intro p + p {
+    margin-top: 8px;
+    font-size: 12px;
+  }
+  .sharing-session > p {
+    margin: 12px 0 20px;
+  }
+  .sharing > .failure {
+    grid-column: 1 / -1;
+  }
+  @media (max-width: 1100px) {
+    .sharing {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  @media (max-width: 700px) {
+    .sharing-session,
+    .saved-devices {
+      padding: 22px;
+    }
   }
   h1 {
     font-size: 36px;
     margin: 12px 0;
   }
   h2 {
-    margin-top: 30px;
+    margin-top: 28px;
+    margin-bottom: 14px;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.5px;
   }
   p {
-    color: var(--muted, #a4b2aa);
+    color: var(--muted, #b2a4a9);
     line-height: 1.6;
   }
   button,
@@ -261,8 +330,8 @@
   select {
     font: inherit;
     color: inherit;
-    background: var(--surface, #1c2922);
-    border: 1px solid #3c5145;
+    background: var(--surface, #221c29);
+    border: 1px solid #4c3c51;
     border-radius: 10px;
     padding: 11px;
   }
@@ -281,12 +350,25 @@
     min-width: 0;
   }
   label.option {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 12px;
     margin: 24px 0;
+    padding: 18px;
+    border-radius: 14px;
+    background: #c4a2ce08;
+    font-size: 12px;
+    line-height: 1.8;
+  }
+  input[type='checkbox'] {
+    accent-color: var(--accent);
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
   }
   .primary {
-    background: #b5edcf;
-    color: #12271b;
+    background: #e0c2cc;
+    color: #1c1722;
   }
   .actions {
     display: flex;
@@ -297,12 +379,17 @@
     display: block;
     margin: 20px 0;
     border-radius: 12px;
+    padding: 10px;
+    background: white;
+    max-width: 100%;
+    height: auto;
   }
   article {
     padding: 18px;
-    border: 1px solid #304337;
+    border: 1px solid #393043;
     border-radius: 14px;
     margin: 12px 0;
+    background: #c4a2ce06;
   }
   article > button {
     margin: 8px;

@@ -274,10 +274,10 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    background: rgba(18, 27, 22, 0.35);
+    background: linear-gradient(135deg, #47304766, #211b2cb3);
     backdrop-filter: blur(24px) saturate(125%);
-    border: 1px solid #b0e7ce40;
-    border-radius: 12px;
+    border: 1px solid #dcbbc640;
+    border-radius: 22px;
   }
   .quick-input-row {
     display: flex;
@@ -285,25 +285,25 @@
     gap: 16px;
     padding: 20px 22px;
     border-bottom: 1px solid #ffffff0d;
-    color: #b0e7ce;
+    color: #dcbbc6;
   }
   .quick-input-row input {
     flex: 1;
     min-width: 0;
     font-size: 20px;
-    color: #eef5ef;
+    color: #f5eef0;
     background: none;
     border: 0;
     outline: 0;
     padding: 0;
   }
   .quick-input-row input::placeholder {
-    color: #82978a;
+    color: #978289;
   }
   .quick-close {
     display: grid;
     place-items: center;
-    color: #91a196;
+    color: #a19196;
     border-radius: 5px;
     padding: 5px;
   }
@@ -327,8 +327,8 @@
     border: 1px solid transparent;
   }
   .quick-result.chosen {
-    background: #b0e7ce12;
-    border-color: #b0e7ce22;
+    background: #dcbbc612;
+    border-color: #dcbbc622;
   }
   .quick-art {
     height: 38px;
@@ -337,9 +337,9 @@
     display: grid;
     place-items: center;
     border-radius: 5px;
-    background: #284331;
+    background: #352a41;
     overflow: hidden;
-    color: #b0e7ce;
+    color: #dcbbc6;
   }
   .quick-art img {
     height: 100%;
@@ -360,22 +360,22 @@
   .quick-description strong {
     font-size: 13px;
     font-weight: 550;
-    color: #e1eee5;
+    color: #eee1e5;
   }
   .quick-description small {
     font-size: 11px;
-    color: #8ea496;
+    color: #a48e95;
     margin-top: 3px;
   }
   .quick-result > :global(svg) {
-    color: #b0e7ce;
+    color: #dcbbc6;
     opacity: 0;
   }
   .quick-result.chosen > :global(svg) {
     opacity: 1;
   }
   .quick-video {
-    color: #9cad9f;
+    color: #ad9ca2;
     font-size: 9px;
     max-width: 60px;
   }
@@ -388,10 +388,10 @@
     gap: 14px;
     padding: 25px;
     text-align: center;
-    color: #8ea496;
+    color: #a48e95;
   }
   .quick-empty strong {
-    color: #dce9e0;
+    color: #e9dce0;
     font-weight: 500;
     font-size: 15px;
   }
@@ -411,7 +411,7 @@
     gap: 10px;
     padding: 12px 20px;
     border-top: 1px solid #ffffff0d;
-    color: #84978a;
+    color: #97848a;
     font-size: 10px;
   }
 </style>

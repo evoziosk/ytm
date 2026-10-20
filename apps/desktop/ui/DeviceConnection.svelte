@@ -255,7 +255,7 @@
   }
   .qr-overlay p,
   .qr-overlay button {
-    background: #111614;
+    background: #131116;
     color: white;
     padding: 16px;
     border-radius: 12px;
@@ -265,13 +265,13 @@
   }
   .remote-client {
     padding: 22px;
-    border: 1px solid #3c5145;
+    border: 1px solid #4c3c51;
     border-radius: 16px;
     margin-bottom: 30px;
     max-width: 800px;
   }
   p {
-    color: var(--muted, #a4b2aa);
+    color: var(--muted, #b2a4a9);
   }
   p {
     line-height: 1.6;
@@ -284,8 +284,8 @@
     font: inherit;
     border-radius: 10px;
     padding: 10px;
-    border: 1px solid #3c5145;
-    background: var(--surface, #1c2922);
+    border: 1px solid #4c3c51;
+    background: var(--surface, #221c29);
     color: inherit;
   }
   label {

@@ -5,6 +5,7 @@ import App from './App.svelte';
 import QuickSearch from './QuickSearch.svelte';
 import './style.css';
 import './music.css';
+import './theme.css';
 const quickSearch =
   new URLSearchParams(location.search).get('panel') === 'search';
 document.documentElement.classList.toggle('quick-search-mode', quickSearch);

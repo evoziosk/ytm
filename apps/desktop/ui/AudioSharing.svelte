@@ -341,8 +341,8 @@
     gap: 12px;
     flex-wrap: wrap;
     padding: 12px 16px;
-    border: 1px solid #98e2ca55;
-    background: #98e2ca12;
+    border: 1px solid #d2a8b655;
+    background: #d2a8b612;
     border-radius: 14px;
     margin-bottom: 20px;
   }
@@ -364,7 +364,7 @@
   .audio-field input,
   meter {
     width: 100%;
-    accent-color: #98e2ca;
+    accent-color: #d2a8b6;
   }
   meter {
     height: 12px;
@@ -375,10 +375,10 @@
     border-radius: 8px;
   }
   meter::-webkit-meter-optimum-value {
-    background: #98e2ca;
+    background: #d2a8b6;
     border-radius: 8px;
   }
   a {
-    color: #98e2ca;
+    color: #d2a8b6;
   }
 </style>

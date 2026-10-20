@@ -646,6 +646,7 @@
             the desktop app.
           </div>{/if}
         <div
+          class="music-workspace"
           hidden={!(
             tab === 'overview' ||
             tab === 'search' ||
@@ -666,6 +667,86 @@
             onError={(message) => (error = message)}
             onAccount={() => (accountOpen = true)}
           />
+          <aside class="listening-rail" aria-label="Your listening space">
+            <section class="listening-card">
+              {#if track?.artwork}
+                <div
+                  class="listening-haze"
+                  style:background-image={`url("${track.artwork}")`}
+                ></div>
+              {/if}
+              <div class="listening-heading">
+                <span class="eyebrow">NOW PLAYING</span><AudioLines size={17} />
+              </div>
+              {@render artwork('large')}
+              <div class="listening-title">
+                <h2>{track?.title ?? 'Set the mood.'}</h2>
+                <p>
+                  {data.player.ad
+                    ? 'Advertisement'
+                    : (track?.artist ?? 'Your next favorite is a play away.')}
+                </p>
+              </div>
+              <button
+                class="play-button listening-play"
+                aria-label={data.player.playing
+                  ? 'Pause now playing'
+                  : 'Play now playing'}
+                disabled={!track || locked || !allowed(device, 'transport')}
+                onclick={() => command({ type: 'toggle' })}
+                >{#if data.player.playing}<Pause
+                    size={23}
+                    fill="currentColor"
+                  />{:else}<Play size={23} fill="currentColor" />{/if}</button
+              >
+              <div class="listening-caption">
+                <Headphones size={13} /><span
+                  >{data.player.playing
+                    ? 'A little closer to the music.'
+                    : 'Make yourself at home.'}</span
+                >
+              </div>
+            </section>
+            <section class="listening-queue" aria-label="Queue preview">
+              <div class="section-heading">
+                <h3>
+                  Up next <span
+                    >{device.active
+                      ? (deviceQueue?.total ?? 0)
+                      : data.queue.length}</span
+                  >
+                </h3>
+                <button
+                  class="icon"
+                  aria-label="View full queue"
+                  onclick={() => (tab = 'queue')}
+                  ><ArrowUpRight size={17} /></button
+                >
+              </div>
+              {#each data.queue.slice(data.queue_index + 1, data.queue_index + 5) as item}
+                <div class="listening-queue-row">
+                  <span class="track-art"
+                    >{#if item.artwork}<img
+                        src={item.artwork}
+                        alt=""
+                        referrerpolicy="no-referrer"
+                        loading="lazy"
+                      />{:else}<Music2 size={18} />{/if}</span
+                  >
+                  <div class="track-description">
+                    <strong>{item.title}</strong><small
+                      >{item.artist || item.subtitle}</small
+                    >
+                  </div>
+                </div>
+              {:else}
+                <div class="listening-queue-empty">
+                  <ListMusic size={25} strokeWidth={1.3} />
+                  <p>A little room for<br />what comes next.</p>
+                </div>
+              {/each}
+            </section>
+          </aside>
         </div>
         {#if tab === 'remote' || tab === 'group'}
           <button class="primary" onclick={() => (devicePickerOpen = true)}
@@ -1035,117 +1116,135 @@
               <p>A companion that fits the way you listen.</p>
             </div>
           </div>
-          {#if panel === 'settings' && !mobile}
-            <section class="card appearance-card">
-              <h3>Appearance</h3>
+          <div class="preferences-grid">
+            {#if panel === 'settings' && !mobile}
+              <section class="card appearance-card">
+                <div class="section-heading">
+                  <h3>Appearance</h3>
+                  <span class="panel-kicker">YOUR SPACE</span>
+                </div>
+                <div class="appearance-preview" aria-hidden="true">
+                  <div class="preview-window">
+                    <div class="preview-window-nav"><i></i><i></i><i></i></div>
+                    <div class="preview-window-body">
+                      <span></span><span></span><span></span>
+                    </div>
+                    <div class="preview-window-player">
+                      <span></span><Play size={12} fill="currentColor" />
+                    </div>
+                  </div>
+                  <div class="appearance-swatch"></div>
+                  <span>Rose after dark</span>
+                </div>
+                <div class="setting-row">
+                  <div>
+                    <strong>Window blur</strong>
+                    <p>
+                      A translucent background with a soft blur of your desktop.
+                    </p>
+                  </div>
+                  <Toggle
+                    bind:checked={
+                      () => data.settings.window_blur,
+                      (value) => void setWindowBlur(value)
+                    }
+                    disabled={appearanceBusy || busy}
+                    label="Window blur"
+                  />
+                </div>
+                <p class="muted small-text">
+                  Applies immediately and is saved automatically.
+                </p>
+              </section>
+            {/if}
+            <section class="card">
+              <h3>Streaming quality</h3>
+              <p class="muted">
+                Song versions and audio-only playback are preferred, including
+                tracks paired with a music video. Video-only recordings remain
+                available when no matching song version is found.
+              </p>
               <div class="setting-row">
                 <div>
-                  <strong>Window blur</strong>
+                  <strong>High</strong>
                   <p>
-                    A translucent background with a soft blur of your desktop.
+                    Request YouTube Music’s highest audio quality available to
+                    your account.
                   </p>
                 </div>
-                <Toggle
-                  bind:checked={
-                    () => data.settings.window_blur,
-                    (value) => void setWindowBlur(value)
-                  }
-                  disabled={appearanceBusy || busy}
-                  label="Window blur"
-                />
+                <span class="pill"
+                  >{data.audio.requested_high
+                    ? 'Requested'
+                    : 'Waiting for player'}</span
+                >
               </div>
-              <p class="muted small-text">
-                Applies immediately and is saved automatically.
+              <p class="muted">
+                {data.audio.premium
+                  ? 'Premium account detected.'
+                  : 'Premium quality requires a signed-in YouTube Music Premium account.'}
+                {#if data.player.ad}Quality information resumes after the
+                  advertisement.
+                {:else if data.audio.bitrate}Current stream: {Math.round(
+                    data.audio.bitrate / 1000,
+                  )} kbps{data.audio.stream_quality === 'high'
+                    ? ' · High quality'
+                    : ''}.
+                {:else}Current stream quality will appear when a song starts.{/if}
               </p>
             </section>
-          {/if}
-          <section class="card">
-            <h3>Streaming quality</h3>
-            <p class="muted">
-              Song versions and audio-only playback are preferred, including
-              tracks paired with a music video. Video-only recordings remain
-              available when no matching song version is found.
-            </p>
-            <div class="setting-row">
-              <div>
-                <strong>High</strong>
-                <p>
-                  Request YouTube Music’s highest audio quality available to
-                  your account.
-                </p>
+            <section class="card desktop-preferences" hidden={mobile}>
+              <h3>Your desktop, your rhythm.</h3>
+              <div class="setting-row">
+                <div>
+                  <strong>Keep listening when the window closes</strong>
+                  <p>Stay in the system tray. Use the tray menu to quit.</p>
+                </div>
+                <Toggle
+                  bind:checked={draft.close_to_tray}
+                  label="Close to system tray"
+                />
               </div>
-              <span class="pill"
-                >{data.audio.requested_high
-                  ? 'Requested'
-                  : 'Waiting for player'}</span
+              <div class="setting-row">
+                <div>
+                  <strong>A soundtrack from the start</strong>
+                  <p>Launch YTM Listen when you sign in to your computer.</p>
+                </div>
+                <Toggle
+                  bind:checked={draft.autostart}
+                  label="Launch at startup"
+                />
+              </div>
+            </section>
+            <section class="card" hidden={mobile}>
+              <div class="section-heading">
+                <h3>A smaller way to stay close.</h3>
+                <span class="feature-icon green"><Disc3 size={22} /></span>
+              </div>
+              <p class="muted">
+                The always-on-top mini-player puts the essentials within reach,
+                without taking over your space.
+              </p>
+              <button
+                class="secondary"
+                onclick={() =>
+                  action(() => call('open_panel', { panel: 'mini' }))}
+                >Open mini-player <ArrowUpRight size={16} /></button
               >
-            </div>
-            <p class="muted">
-              {data.audio.premium
-                ? 'Premium account detected.'
-                : 'Premium quality requires a signed-in YouTube Music Premium account.'}
-              {#if data.player.ad}Quality information resumes after the
-                advertisement.
-              {:else if data.audio.bitrate}Current stream: {Math.round(
-                  data.audio.bitrate / 1000,
-                )} kbps{data.audio.stream_quality === 'high'
-                  ? ' · High quality'
-                  : ''}.
-              {:else}Current stream quality will appear when a song starts.{/if}
-            </p>
-          </section>
-          <section class="card" hidden={mobile}>
-            <h3>Your desktop, your rhythm.</h3>
-            <div class="setting-row">
-              <div>
-                <strong>Keep listening when the window closes</strong>
-                <p>Stay in the system tray. Use the tray menu to quit.</p>
-              </div>
-              <Toggle
-                bind:checked={draft.close_to_tray}
-                label="Close to system tray"
-              />
-            </div>
-            <div class="setting-row">
-              <div>
-                <strong>A soundtrack from the start</strong>
-                <p>Launch YTM Listen when you sign in to your computer.</p>
-              </div>
-              <Toggle
-                bind:checked={draft.autostart}
-                label="Launch at startup"
-              />
-            </div>
-          </section>
-          <section class="card" hidden={mobile}>
-            <div class="section-heading">
-              <h3>A smaller way to stay close.</h3>
-              <span class="feature-icon green"><Disc3 size={22} /></span>
-            </div>
-            <p class="muted">
-              The always-on-top mini-player puts the essentials within reach,
-              without taking over your space.
-            </p>
-            <button
-              class="secondary"
-              onclick={() =>
-                action(() => call('open_panel', { panel: 'mini' }))}
-              >Open mini-player <ArrowUpRight size={16} /></button
-            >
-          </section>
-          <section class="card">
-            <h3>Find the words.</h3>
-            <p class="muted">
-              Look up lyrics for your current song. Synced lyrics highlight as
-              you listen.
-            </p>
-            <button
-              class="secondary"
-              onclick={() =>
-                action(() => call('open_panel', { panel: 'lyrics' }))}
-              >Open lyrics <MicVocal size={16} /></button
-            >
-          </section>
+            </section>
+            <section class="card">
+              <h3>Find the words.</h3>
+              <p class="muted">
+                Look up lyrics for your current song. Synced lyrics highlight as
+                you listen.
+              </p>
+              <button
+                class="secondary"
+                onclick={() =>
+                  action(() => call('open_panel', { panel: 'lyrics' }))}
+                >Open lyrics <MicVocal size={16} /></button
+              >
+            </section>
+          </div>
         {:else if tab === 'about'}
           <div class="page-title">
             <div>

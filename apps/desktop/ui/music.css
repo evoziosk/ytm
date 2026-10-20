@@ -13,34 +13,34 @@
   gap: 13px;
   flex: 1;
   max-width: 680px;
-  background: #1d2821;
-  border: 1px solid #47604b66;
+  background: #221d28;
+  border: 1px solid #5a476066;
   padding: 8px 12px 8px 17px;
   border-radius: 12px;
-  color: #9fbea8;
+  color: #be9fa9;
 }
 .music-search:focus-within {
-  border-color: #a6d4b6;
+  border-color: #d2a8b6;
 }
 .music-search input {
   border: 0;
   background: none;
   outline: none;
-  color: #e3eee6;
+  color: #eee3e7;
   min-width: 0;
   width: 100%;
   padding: 8px 0;
   font-size: 13px;
 }
 .music-search input::placeholder {
-  color: #708b79;
+  color: #84708b;
 }
 .music-search button {
   display: grid;
   place-items: center;
   border-radius: 7px;
-  background: #a8dbbe;
-  color: #183a27;
+  background: #d5aebb;
+  color: #282032;
   padding: 9px;
 }
 .account-button {
@@ -48,10 +48,10 @@
   align-items: center;
   gap: 8px;
   padding: 12px;
-  border: 1px solid #3d5344;
+  border: 1px solid #4e3d53;
   border-radius: 9px;
   font-size: 11px;
-  color: #bed4c5;
+  color: #d4bec5;
 }
 .music-page-heading {
   display: flex;
@@ -68,7 +68,7 @@
   letter-spacing: -1.2px;
 }
 .music-page-heading p {
-  color: #8ea695;
+  color: #a68e96;
   font-size: 11px;
   margin-top: 10px;
 }
@@ -81,7 +81,7 @@
   display: flex;
   gap: 7px;
   align-items: center;
-  color: #748f7d;
+  color: #88748f;
   font-size: 9px;
   margin: 10px 0 25px;
   line-height: 1.7;
@@ -100,19 +100,19 @@
 .music-filters > span {
   margin-left: auto;
   font-size: 10px;
-  color: #7f9989;
+  color: #997f88;
   white-space: nowrap;
 }
 .music-filters > div > button {
   padding: 7px 12px;
   border-radius: 20px;
   font-size: 10px;
-  color: #9eb5a5;
-  border: 1px solid #4053455e;
+  color: #b59ea6;
+  border: 1px solid #4e40535e;
 }
 .music-filters > div > button.chosen {
-  background: #b0dfc5;
-  color: #23422f;
+  background: #d9b6c2;
+  color: #32283d;
   border-color: transparent;
 }
 .music-grid {
@@ -132,11 +132,11 @@
   align-items: center;
   justify-content: center;
   aspect-ratio: 1;
-  background: radial-gradient(at top right, #5c76524f, #253b2b);
+  background: radial-gradient(at top right, #6d52764f, #2f263a);
   border-radius: 12px;
   position: relative;
   overflow: hidden;
-  color: #a1c4a6;
+  color: #c4a1ad;
   width: 100%;
   box-shadow: 0 8px 20px #0002;
 }
@@ -161,8 +161,8 @@
   position: absolute;
   bottom: 10px;
   right: 10px;
-  background: #b7e8cf;
-  color: #21452f;
+  background: #dfc0ca;
+  color: #32283e;
   opacity: 0;
   transform: translateY(5px);
   transition:
@@ -177,7 +177,7 @@
 }
 .music-kind {
   display: block;
-  color: #839f8b;
+  color: #9f838c;
   font-size: 8px;
   text-transform: uppercase;
   letter-spacing: 1.1px;
@@ -187,14 +187,14 @@
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #dce9df;
+  color: #e9dce0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .music-card > small {
   display: block;
-  color: #819a89;
+  color: #9a8189;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -204,8 +204,8 @@
 .music-empty {
   padding: 50px 20px 65px;
   border-radius: 14px;
-  border: 1px solid #3b55432e;
-  background: radial-gradient(ellipse at top, #304b322f, transparent);
+  border: 1px solid #4e3b552e;
+  background: radial-gradient(ellipse at top, #3d314a2f, transparent);
   display: flex;
   align-items: center;
   text-align: center;
@@ -215,11 +215,11 @@
 .empty-glyph {
   width: 75px;
   height: 75px;
-  background: #2b433333;
-  border: 1px solid #577b5844;
+  background: #362b4333;
+  border: 1px solid #72577b44;
   display: grid;
   place-items: center;
-  color: #9ec2a7;
+  color: #c29eaa;
   border-radius: 24px;
   margin-bottom: 25px;
 }
@@ -229,7 +229,7 @@
 }
 .music-empty > p {
   font-size: 12px;
-  color: #8eaa96;
+  color: #aa8e97;
   max-width: 470px;
   margin-top: 13px;
   line-height: 1.9;
@@ -238,14 +238,14 @@
   display: flex;
   gap: 11px;
   align-items: center;
-  color: #a3c3ae;
+  color: #c3a3ae;
   font-size: 12px;
   padding: 28px 0;
 }
 .skeleton-card > div {
   aspect-ratio: 1;
   border-radius: 12px;
-  background: linear-gradient(110deg, #243a2c, #304536, #243a2c);
+  background: linear-gradient(110deg, #2e2539, #3a3045, #2e2539);
   background-size: 250% 100%;
   animation: shimmer 2.2s linear infinite;
 }
@@ -255,7 +255,7 @@
   margin-top: 13px;
   height: 9px;
   border-radius: 5px;
-  background: #293c2f;
+  background: #32293c;
   width: 75%;
 }
 .skeleton-card > small {
@@ -264,7 +264,7 @@
   margin-top: 9px;
 }
 .track-list {
-  border-top: 1px solid #36533e55;
+  border-top: 1px solid #4c365355;
   margin: 5px 0 25px;
 }
 .track-row {
@@ -274,29 +274,29 @@
   gap: 15px;
   padding: 12px 10px;
   text-align: left;
-  border-bottom: 1px solid #36533e33;
+  border-bottom: 1px solid #4c365333;
   border-radius: 7px;
 }
 .track-row:hover,
 .track-row.current {
-  background: #304c362f;
+  background: #3d314b2f;
 }
 .track-number {
   width: 24px;
   display: grid;
   place-items: center;
   font-size: 10px;
-  color: #83ab91;
+  color: #ab8390;
 }
 .track-art {
   width: 42px;
   height: 42px;
   border-radius: 6px;
-  background: #294333;
+  background: #352b41;
   display: grid;
   place-items: center;
   overflow: hidden;
-  color: #a4cbae;
+  color: #cba4b1;
   flex-shrink: 0;
 }
 .track-art img {
@@ -317,20 +317,20 @@
 }
 .track-description strong {
   font-size: 12px;
-  color: #d2e3d7;
+  color: #e3d2d8;
   font-weight: 500;
 }
 .track-description small {
-  color: #7f9c89;
+  color: #9c7f89;
   font-size: 10px;
   margin-top: 5px;
 }
 .track-row.current .track-description strong {
-  color: #b5e8c7;
+  color: #debfc9;
 }
 .track-row > svg {
   margin-left: auto;
-  color: #b6d6c2;
+  color: #d6b6c1;
   opacity: 0;
 }
 .track-row:hover > svg {
@@ -339,7 +339,7 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: #06130cb8;
+  background: #0c0a0fb8;
   backdrop-filter: blur(9px);
   z-index: 30;
   display: grid;
@@ -348,9 +348,9 @@
 }
 .account-modal {
   width: min(540px, 95vw);
-  border: 1px solid #64866a66;
+  border: 1px solid #7e648666;
   border-radius: 17px;
-  background: radial-gradient(at top right, #334d3466, transparent), #1b2b20;
+  background: radial-gradient(at top right, #46334d66, transparent), #231c2a;
   padding: 30px;
   box-shadow: 0 25px 100px #0007;
 }
@@ -366,14 +366,14 @@
 }
 .account-modal > p {
   font-size: 12px;
-  color: #9bb4a2;
+  color: #b49ba3;
   margin-top: 15px;
   line-height: 1.9;
 }
 .account-modal .account-help {
   font-size: 10px;
-  color: #789681;
-  border-top: 1px solid #52745a44;
+  color: #967882;
+  border-top: 1px solid #6c527444;
   padding-top: 20px;
   margin-top: 24px;
 }
