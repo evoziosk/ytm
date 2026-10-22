@@ -4,17 +4,17 @@
 
 YouTube Music runs in a background playback session. Browsing and playback controls live in the app's own interface, while your Google account and eligible YouTube Music Premium benefits remain part of your YouTube session.
 
-**Version:** 0.4.0 · **Primary platform:** Windows x64 · **License:** [MIT](LICENSE) · **Built with:** Tauri 2, Rust, Svelte 5, and Cloudflare Durable Objects
+**Version:** 0.5.0 · **Primary platform:** Windows x64 · **License:** [MIT](LICENSE) · **Built with:** Tauri 2, Rust, Svelte 5, and Cloudflare Durable Objects
 
 Remote and group control now share one host player over LAN or the Cloudflare relay, with browser and installed controllers, approval, permissions and revocable device pairing. The full-app Android feasibility build includes the native playback service; physical-device acceptance is still required before Android hosting is considered supported. See [shared control, deployment and Android validation](docs/shared-control.md).
 
 [Download for Windows](https://github.com/evoziosk/ytm/releases/latest) · [Screenshots](#screenshots) · [Features](#features) · [Build from source](#run-from-source) · [Report an issue](https://github.com/evoziosk/ytm/issues)
 
-Version 0.4.0 includes a Windows [virtual microphone preview](docs/virtual-microphone.md): share the local player's music and optionally mix in a physical microphone using an installed virtual audio cable.
+Version 0.5.0 introduces the plum/rose translucent theme, a desktop discovery layout, redesigned panels, global header search, and clickable Up next tracks on Home. Android adds an experimental native Google library connection for read-only YouTube playlists; see the [release notes](docs/releases/v0.5.0.md) and [Android setup](docs/android-google-sign-in.md). The Windows [virtual microphone preview](docs/virtual-microphone.md) remains available.
 
 [![CI](https://github.com/evoziosk/ytm/actions/workflows/ci.yml/badge.svg)](https://github.com/evoziosk/ytm/actions/workflows/ci.yml)
 
-![YTM Listen YouTube Music desktop app on Windows, showing electronic playlists, navigation, and player controls](docs/screenshots/ytm-listen-electronic-playlists-windows.jpg)
+![YTM Listen 0.5.0 desktop playlist layout with plum and rose translucent styling, queue and playback bar](docs/screenshots/ytm-listen-playlist-v0.5.0-windows.jpg)
 
 ## Contents
 
@@ -52,7 +52,7 @@ Version 0.4.0 includes a Windows [virtual microphone preview](docs/virtual-micro
 | **Global popup search**          | Press `Ctrl+Shift+K` from another application, search for a song, select with the arrow keys, and press Enter to play.                                                                                                             |
 | **Discord Rich Presence**        | Share a Listening activity with song details, artwork, progress, and music or room buttons. Configure pause/idle hiding and artist/playlist blocklists.                                                                            |
 | **Listening rooms**              | Host or join a room with track, play/pause, and playback-position synchronization. Share an invitation and transfer the host role.                                                                                                 |
-| **Queue controls**               | Select, reorder, and remove tracks; clear other tracks; shuffle the remaining queue; and switch repeat off, all, or one.                                                                                                           |
+| **Queue controls**               | Click Up next tracks directly on Home; select, reorder, and remove tracks; clear other tracks; shuffle the remaining queue; and switch repeat off, all, or one.                                                                    |
 | **Desktop integration**          | Use tray controls, configurable global shortcuts, native media controls, an always-on-top mini-player, launch at startup, and close to tray.                                                                                       |
 | **Optional window blur**         | Enable a translucent main window with native Windows desktop blur. The switch applies immediately and remembers your choice.                                                                                                       |
 | **Lyrics**                       | Look up plain or synchronized lyrics from LRCLIB, with timed highlighting when available.                                                                                                                                          |
@@ -65,25 +65,25 @@ Windows is the verified development target. macOS and Linux have build configura
 
 ## Screenshots
 
-These are captures of the packaged **Windows app, version 0.3.2**, using a separate signed-out profile and public music results. They show the actual desktop interface. Catalog recommendations, artwork, and available recordings can vary by region and account.
+These are fresh captures of the packaged **Windows app, version 0.5.0**, using a separate signed-out profile and real public music results. They show the plum/rose translucent theme and desktop layout. Catalog recommendations, artwork, and available recordings can vary by region and account.
 
 ### Music search and player
 
-Filter results to Songs, choose a recording, and control playback from the persistent player bar.
+Search from the compact header, browse artwork and track results, and control playback from the full-width bottom bar. The right-hand column keeps Now playing and clickable Up next tracks beside your music.
 
-![YTM Listen music search on Windows, with song results, album artwork, and active playback controls](docs/screenshots/ytm-listen-song-search-windows.jpg)
+![YTM Listen music search on Windows, with electronic playlists, album artwork, and playback controls](docs/screenshots/ytm-listen-search-v0.5.0-windows.jpg)
 
 ### Transparent popup search
 
 Find music in a centered glass overlay with compact results, arrow-key navigation, and Enter to play.
 
-![YTM Listen transparent popup search with live song results and keyboard controls](docs/screenshots/ytm-listen-quick-search-windows.jpg)
+![YTM Listen transparent popup search with live song results and keyboard controls](docs/screenshots/ytm-listen-quick-search-v0.5.0-windows.jpg)
 
 ### Appearance and streaming preferences
 
-Control the main window's blur and inspect the stream quality reported by the active player.
+The redesigned preferences use spacious translucent panels, an appearance preview, rose switches, and clearer control groups. Enable native window blur and inspect the active streaming quality.
 
-![YTM Listen Preferences showing the Window blur toggle and YouTube Music streaming-quality status](docs/screenshots/ytm-listen-preferences-windows.jpg)
+![YTM Listen Preferences showing the Window blur toggle and YouTube Music streaming-quality status](docs/screenshots/ytm-listen-preferences-v0.5.0-windows.jpg)
 
 ## Install YTM Listen
 

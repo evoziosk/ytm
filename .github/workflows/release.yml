@@ -206,7 +206,7 @@ jobs:
               const releaseNotes = fs.existsSync(notesPath) ? fs.readFileSync(notesPath, 'utf8') : notes.body;
               release = (await github.rest.repos.createRelease({
                 ...context.repo, tag_name: tag, name: `YTM Listen ${tag}`, draft: true, prerelease: false,
-                body: 'Download an installer and verify it with SHA256SUMS.txt. Desktop builds are unsigned. Windows is the verified development target; macOS and Linux still need native behavior testing. The experimental Android APK uses a test signing key; Google sign-in is blocked and physical-device acceptance is pending. See README for setup.\n\n' + releaseNotes,
+                body: 'Download an installer and verify it with SHA256SUMS.txt. Desktop builds are unsigned. Windows is the verified development target; macOS and Linux still need native behavior testing. The experimental Android APK uses a test signing key. Native Google library access requires APK-specific OAuth registration; authenticated Music playback and physical-device acceptance remain pending. See README for setup.\n\n' + releaseNotes,
               })).data;
             }
             const names = fs.readdirSync('release-assets').sort();

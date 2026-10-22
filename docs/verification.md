@@ -239,3 +239,13 @@ restoration, private-playlist access, revocation and device playback are therefo
 **not verified**. Follow [the setup and acceptance guide](android-google-sign-in.md).
 Authenticated Music/Premium playback remains outside this implementation: Google
 API authorization does not sign in the playback WebView.
+
+## Version 0.5.0 release verification - 22 October 2026
+
+- Workspace type checks and all 78 JavaScript tests pass. Svelte reports zero errors or warnings.
+- Rust formatting, Clippy with warnings denied, and workspace tests pass (40 passed; the explicitly opt-in LAN multicast test remains ignored).
+- Protocol type generation produces no changes; the relay deployment dry run and release/Android workflow syntax checks pass.
+- Release workflow smoke checks pass for 10 metadata/package scenarios and seven publication scenarios, including the experimental APK and checksum checks.
+- Windows EXE and MSI installers compile successfully at version 0.5.0.
+- README screenshots come from the packaged Windows 0.5.0 executable with an isolated, signed-out profile and live public electronic music results. Playlist, search, preferences and popup captures were visually reviewed; no Bollywood content is shown.
+- Android live authorization and physical-device acceptance remain pending as described above; no new device verification is claimed for this release.
