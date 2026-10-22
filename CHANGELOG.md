@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1 — 2026-10-22
+
+- Fix the Linux AppImage not playing any music: bundle the GStreamer media plugins WebKitGTK needs, and install them in the release build.
+
 ## 0.5.0 — 2026-10-22
 
 - Introduce the plum/rose translucent desktop theme and redesign music, preferences, sharing and connection panels.
