@@ -19,6 +19,7 @@
   let searching = $state(false);
   let playing = $state(false);
   let failure = $state('');
+  let notice = $state('');
   let input = $state<HTMLInputElement>();
   let list = $state<HTMLDivElement>();
   let timer: ReturnType<typeof setTimeout>;
@@ -81,6 +82,7 @@
     results = [];
     selected = 0;
     failure = '';
+    notice = '';
     searching = Boolean(request.query);
     if (!request.query) return;
     timer = setTimeout(() => {
@@ -113,7 +115,10 @@
       if (queued) void search();
     }
   }
-  async function choose(index: number) {
+  async function choose(
+    index: number,
+    placement: 'play' | 'next' | 'end' = 'play',
+  ) {
     if (playing || !results[index]) return;
     if (locked) {
       failure =
@@ -122,10 +127,26 @@
     }
     playing = true;
     failure = '';
+    notice = '';
     const songs = $state.snapshot(results);
     try {
-      await call('play_items', { items: songs, index, playlistId: '' });
-      await dismiss();
+      if (placement === 'play') {
+        await call('play_items', { items: songs, index, playlistId: '' });
+        await dismiss();
+      } else {
+        const item = songs[index];
+        await call('queue_track', {
+          track: {
+            video_id: item.video_id,
+            title: item.title,
+            artist: item.artist || item.subtitle,
+            artwork: item.artwork,
+          },
+          placement,
+        });
+        if (!disposed)
+          notice = `${item.title} ${placement === 'next' ? 'will play next' : 'added to queue'}.`;
+      }
     } catch (error) {
       failure = String(error).replace(/^Error: /, '');
     } finally {
@@ -133,12 +154,21 @@
     }
   }
   function keydown(event: KeyboardEvent) {
-    if (event.isComposing || event.ctrlKey || event.metaKey || event.altKey)
-      return;
+    if (event.isComposing || event.altKey) return;
     if (event.key === 'Enter') {
       event.preventDefault();
-      if (!searching) void choose(selected);
+      if (!searching)
+        void choose(
+          selected,
+          event.ctrlKey || event.metaKey
+            ? 'end'
+            : event.shiftKey
+              ? 'next'
+              : 'play',
+        );
+      return;
     }
+    if (event.ctrlKey || event.metaKey || event.shiftKey) return;
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
     event.preventDefault();
     if (!results.length) return;
@@ -257,13 +287,32 @@
       </p>
     </div>
   {/if}
+  {#if results[selected]}
+    <div class="quick-actions" role="group" aria-label="Selected song actions">
+      <button
+        class="secondary"
+        disabled={playing || locked}
+        onclick={() => void choose(selected, 'next')}
+        aria-keyshortcuts="Shift+Enter"
+        title="Shift+Enter">Play next</button
+      >
+      <button
+        class="secondary"
+        disabled={playing || locked}
+        onclick={() => void choose(selected, 'end')}
+        aria-keyshortcuts="Control+Enter Meta+Enter"
+        title="Ctrl+Enter">Add to queue</button
+      >
+    </div>
+  {/if}
+  {#if notice}<div class="quick-notice" role="status">{notice}</div>{/if}
   <footer>
     <span
       >{playing
-        ? 'Starting playback…'
+        ? 'Updating your music…'
         : locked
           ? 'Following your party host'
-          : '↑ ↓ choose · Enter play · Esc close'}</span
+          : '↑ ↓ choose · Enter play · Shift+Enter next · Ctrl+Enter queue'}</span
     ><span>{data.settings.hotkey_search || 'YTM Listen'}</span>
   </footer>
 </main>
@@ -403,6 +452,16 @@
     padding: 10px 22px;
     background: #c1736b14;
     color: #e9ada4;
+    font-size: 12px;
+  }
+  .quick-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px 20px;
+  }
+  .quick-notice {
+    padding: 0 20px 8px;
+    color: #dcbbc6;
     font-size: 12px;
   }
   footer {

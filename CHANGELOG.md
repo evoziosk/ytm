@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- Match the application icon to the plum/rose interface and regenerate desktop and Android launcher assets.
+- Add Play next and Add to queue to popup search, with Shift+Enter and Ctrl+Enter shortcuts, confirmation, and retryable errors.
+- Add opt-in automatic lyrics lookup, a 20-result in-memory cache, and manual refresh in the lyrics window.
+- Fix stale lyrics responses and errors after track or playback-device changes, and retain remote lyrics during unrelated local player updates.
+- Allow queue-only remote controllers to add tracks while keeping transport actions restricted.
+- Add Copy song link to the player with clipboard success and error feedback.
+- Refresh the feature audit with implemented changes, verification limits, and remaining priorities.
+
 ## 0.5.1 — 2026-10-22
 
 - Fix the Linux AppImage not playing any music: bundle the GStreamer media plugins WebKitGTK needs, and install them in the release build.

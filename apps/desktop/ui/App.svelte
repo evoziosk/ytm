@@ -47,6 +47,7 @@
   import Sharing from './Sharing.svelte';
   import AudioSharing from './AudioSharing.svelte';
   import DeviceConnection from './DeviceConnection.svelte';
+  import Lyrics from './Lyrics.svelte';
   import {
     playbackView,
     allowed,
@@ -68,7 +69,6 @@
     type Settings,
     type Snapshot,
   } from './api';
-  import { parseLrc, type Line } from './lyrics';
   import type { PlayerCommand } from '@ytm/protocol';
 
   const panel = new URLSearchParams(location.search).get('panel') ?? 'settings';
@@ -199,11 +199,6 @@
 
   let room = $state('');
   let clock = $state(Date.now());
-  let lyrics = $state<Line[]>([]);
-  let plainLyrics = $state('');
-  let lyricsStatus = $state('Play a song, then look up its lyrics.');
-  let lyricsLoading = $state(false);
-  let lastLyricsTrack = '';
   let lastPendingRoom: string | null = null;
   const dirty = $derived(
     ready && JSON.stringify(draft) !== JSON.stringify(data.settings),
@@ -222,9 +217,6 @@
   );
   const position = $derived(
     Math.min(data.player.duration || Infinity, data.player.position + elapsed),
-  );
-  const activeLine = $derived(
-    lyrics.reduce((last, line, i) => (line.time <= position ? i : last), -1),
   );
   const nav = [
     { id: 'overview', label: 'Home', icon: LayoutDashboard },
@@ -313,11 +305,6 @@
       tab = 'party';
     }
     lastPendingRoom = next.pending_room;
-    if (next.player.track?.video_id !== lastLyricsTrack) {
-      lyrics = [];
-      plainLyrics = '';
-      lyricsStatus = 'Look up lyrics for the current song.';
-    }
   }
   onMount(() => {
     let dispose = () => {};
@@ -464,30 +451,14 @@
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean);
-  async function loadLyrics() {
-    lyricsLoading = true;
-    lyricsStatus = 'Finding the words…';
-    const requested = track?.video_id;
-    lastLyricsTrack = requested ?? '';
-    try {
-      const result = await call<{
-        syncedLyrics: string | null;
-        plainLyrics: string | null;
-        instrumental: boolean;
-      }>('get_lyrics');
-      if (requested !== data.player.track?.video_id) return;
-      lyrics = parseLrc(result.syncedLyrics ?? '');
-      plainLyrics = result.plainLyrics ?? '';
-      lyricsStatus = result.instrumental
-        ? 'Just the music. This track is instrumental.'
-        : lyrics.length || plainLyrics
-          ? ''
-          : 'No lyrics found for this song.';
-    } catch (e) {
-      lyricsStatus = String(e).replace(/^Error: /, '');
-    } finally {
-      lyricsLoading = false;
-    }
+  async function copySongLink() {
+    if (!track) return;
+    await action(async () => {
+      await navigator.clipboard.writeText(
+        `https://music.youtube.com/watch?v=${encodeURIComponent(track.video_id)}`,
+      );
+      notify('Song link copied');
+    });
   }
 </script>
 
@@ -574,31 +545,7 @@
       >{/if}
   </main>
 {:else if panel === 'lyrics'}
-  <main class="lyrics-panel">
-    <div class="eyebrow"><MicVocal size={15} /> THE WORDS BEHIND THE MUSIC</div>
-    <h1>{track?.title ?? 'Every song has a story.'}</h1>
-    <p class="muted">{track?.artist ?? 'Choose something you love.'}</p>
-    <button
-      class="secondary"
-      disabled={!track || lyricsLoading}
-      onclick={loadLyrics}
-      >{#if lyricsLoading}<LoaderCircle
-          class="spin"
-          size={16}
-        />{:else}<MicVocal size={16} />{/if}Find lyrics</button
-    >
-    {#if lyricsStatus}<p class="lyrics-status">{lyricsStatus}</p>{/if}
-    <div class="lyrics-lines">
-      {#each lyrics as line, i}<p class:current={i === activeLine}>
-          {line.text || '♪'}
-        </p>{/each}{#if !lyrics.length}<p class="plain-lyrics">
-          {plainLyrics}
-        </p>{/if}
-    </div>
-    <small class="muted"
-      >Lyrics provided by LRCLIB · Fetched only when you ask</small
-    >
-  </main>
+  <Lyrics {data} {position} />
 {:else}
   <div class="app-shell" class:mobile-app={mobile}>
     <aside class="sidebar">
@@ -1414,6 +1361,12 @@
                 : (track?.artist ?? 'Search for your next favorite above.')}
             </p>
           </div>
+          {#if track && !data.player.ad}<button
+              class="icon"
+              aria-label="Copy song link"
+              title="Copy song link"
+              onclick={() => void copySongLink()}><Copy size={17} /></button
+            >{/if}
           {#if track && !device.active}<button
               class="icon"
               aria-label="Like current song"

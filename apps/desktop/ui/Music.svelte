@@ -697,12 +697,12 @@
                 >
                 <button
                   class="secondary"
-                  disabled={!canPlay}
+                  disabled={!canQueue}
                   onclick={() => addTrack(item, 'next')}>Play next</button
                 >
                 <button
                   class="secondary"
-                  disabled={!canPlay}
+                  disabled={!canQueue}
                   onclick={() => addTrack(item, 'end')}>Add to queue</button
                 >
               </div>

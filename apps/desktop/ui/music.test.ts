@@ -4,6 +4,7 @@ import Music from './Music.svelte';
 import { initial } from './api';
 import { call } from './api';
 import { fromStore, writable } from 'svelte/store';
+import { noDevice } from './playback-device';
 
 vi.mock('./api', async (original) => ({
   ...(await original<typeof import('./api')>()),
@@ -273,4 +274,53 @@ it('can switch an empty Home filter back to All or Songs without reloading', asy
   flushSync(() => button('Albums').click());
   flushSync(() => button('Songs').click());
   expect(document.querySelector('.track-row')?.textContent).toContain('A song');
+});
+
+it('allows a queue-only controller to add songs while keeping playback controls disabled', async () => {
+  const data = structuredClone(initial);
+  data.remote = {
+    ...noDevice,
+    active: true,
+    message: 'Connected',
+    snapshot: {} as any,
+    participant: {
+      approved: true,
+      permissions: { queue: true, transport: false },
+    } as any,
+  };
+  component = mount(Music, {
+    target: document.body,
+    props: { data, onError: vi.fn(), onAccount: vi.fn() },
+  });
+  await vi.waitFor(() =>
+    expect(document.querySelector('.music-card')).not.toBeNull(),
+  );
+  flushSync(() =>
+    [...document.querySelectorAll<HTMLButtonElement>('.music-filters button')]
+      .find((button) => button.textContent?.trim() === 'Songs')!
+      .click(),
+  );
+  expect(
+    document.querySelector<HTMLButtonElement>('.track-row')!.disabled,
+  ).toBe(true);
+  const actions = [
+    ...document.querySelectorAll<HTMLButtonElement>('.queue-edit button'),
+  ];
+  expect(
+    actions.find((button) => button.textContent?.trim() === 'Play now')!
+      .disabled,
+  ).toBe(true);
+  const next = actions.find(
+    (button) => button.textContent?.trim() === 'Play next',
+  )!;
+  const end = actions.find(
+    (button) => button.textContent?.trim() === 'Add to queue',
+  )!;
+  expect(next.disabled).toBe(false);
+  expect(end.disabled).toBe(false);
+  end.click();
+  expect(call).toHaveBeenCalledWith(
+    'queue_track',
+    expect.objectContaining({ placement: 'end' }),
+  );
 });

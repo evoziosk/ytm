@@ -4,13 +4,15 @@
 
 YouTube Music runs in a background playback session. Browsing and playback controls live in the app's own interface, while your Google account and eligible YouTube Music Premium benefits remain part of your YouTube session.
 
-**Version:** 0.5.0 · **Primary platform:** Windows x64 · **License:** [MIT](LICENSE) · **Built with:** Tauri 2, Rust, Svelte 5, and Cloudflare Durable Objects
+**Version:** 0.5.1 · **Primary platform:** Windows x64 · **License:** [MIT](LICENSE) · **Built with:** Tauri 2, Rust, Svelte 5, and Cloudflare Durable Objects
 
 Remote and group control now share one host player over LAN or the Cloudflare relay, with browser and installed controllers, approval, permissions and revocable device pairing. The full-app Android feasibility build includes the native playback service; physical-device acceptance is still required before Android hosting is considered supported. See [shared control, deployment and Android validation](docs/shared-control.md).
 
 [Download for Windows](https://github.com/evoziosk/ytm/releases/latest) · [Screenshots](#screenshots) · [Features](#features) · [Build from source](#run-from-source) · [Report an issue](https://github.com/evoziosk/ytm/issues)
 
 Version 0.5.0 introduces the plum/rose translucent theme, a desktop discovery layout, redesigned panels, global header search, and clickable Up next tracks on Home. Android adds an experimental native Google library connection for read-only YouTube playlists; see the [release notes](docs/releases/v0.5.0.md) and [Android setup](docs/android-google-sign-in.md). The Windows [virtual microphone preview](docs/virtual-microphone.md) remains available.
+
+The current source also includes a matching plum/rose app icon, popup queue actions, opt-in automatic lyrics with a temporary cache, song-link copying, and lyrics/remote-permission fixes. These changes are **unreleased**; build from source to use them. See the [changelog](CHANGELOG.md#unreleased) and [feature audit](docs/feature-audit.md).
 
 [![CI](https://github.com/evoziosk/ytm/actions/workflows/ci.yml/badge.svg)](https://github.com/evoziosk/ytm/actions/workflows/ci.yml)
 
@@ -49,13 +51,13 @@ Version 0.5.0 introduces the plum/rose translucent theme, a desktop discovery la
 | **YouTube Music desktop player** | Browse Home, search for music, open albums and playlists, access your signed-in library, and control playback inside YTM Listen.                                                                                                   |
 | **Song-first search**            | Prefer song recordings and audio playback, including eligible tracks paired with a music video. Keep video-only recordings when a matching song version is unavailable.                                                            |
 | **Premium audio quality**        | Request High through YouTube Music's own player and inspect the active stream's bitrate, quality, and account entitlement in Preferences.                                                                                          |
-| **Global popup search**          | Press `Ctrl+Shift+K` from another application, search for a song, select with the arrow keys, and press Enter to play.                                                                                                             |
+| **Global popup search**          | Press `Ctrl+Shift+K` from another application, search and select with the arrow keys, then Enter to play, Shift+Enter to play next, or Ctrl+Enter to add to the queue.                                                             |
 | **Discord Rich Presence**        | Share a Listening activity with song details, artwork, progress, and music or room buttons. Configure pause/idle hiding and artist/playlist blocklists.                                                                            |
 | **Listening rooms**              | Host or join a room with track, play/pause, and playback-position synchronization. Share an invitation and transfer the host role.                                                                                                 |
 | **Queue controls**               | Click Up next tracks directly on Home; select, reorder, and remove tracks; clear other tracks; shuffle the remaining queue; and switch repeat off, all, or one.                                                                    |
 | **Desktop integration**          | Use tray controls, configurable global shortcuts, native media controls, an always-on-top mini-player, launch at startup, and close to tray.                                                                                       |
 | **Optional window blur**         | Enable a translucent main window with native Windows desktop blur. The switch applies immediately and remembers your choice.                                                                                                       |
-| **Lyrics**                       | Look up plain or synchronized lyrics from LRCLIB, with timed highlighting when available.                                                                                                                                          |
+| **Lyrics**                       | Look up plain or synchronized lyrics from LRCLIB, with timed highlighting, opt-in automatic lookup, a temporary 20-result cache, and manual refresh.                                                                               |
 | **Windows audio identity**       | See YTM Listen's name and icon in the Windows volume mixer.                                                                                                                                                                        |
 | **Virtual microphone preview**   | Route local music and an optional physical microphone to an installed Windows virtual cable, with separate levels, meters, mute, peak protection, and tray controls.                                                               |
 | **Remote and group control**     | Control one host player from the installed app or a browser over LAN or an optional relay. Approve devices, manage permissions, and revoke pairing.                                                                                |
@@ -146,6 +148,8 @@ Open **Play queue** to select, move, or remove a track. **Clear other tracks** k
 
 Use **Play next** or **Add to queue** on a song to place it after the current track or at the end. **Play loaded** queues results already fetched; it does not fetch every remaining catalog page. Installed controllers can send selected songs to their active host, with permission checks and bounded collection batches. App-owned session restoration is still planned.
 
+The player also provides **Copy song link** for the current local or remote song, with confirmation after the clipboard accepts the link.
+
 ## YouTube Music Premium audio quality
 
 YTM Listen requests **High** audio quality automatically when selecting a song. Eligible Premium playback uses the account entitlement reported by YouTube Music, including its subscriber audio parameter. The app uses the normal YouTube Music playback service.
@@ -186,6 +190,8 @@ This feature requires **Windows build 20348 or newer** and a separately installe
 5. Press **Escape** to dismiss the popup.
 
 The quick-search overlay opens centered in the display work area under your pointer, stays above other applications, focuses its input, and uses a transparent background with Windows desktop blur. It hides after successful selection or when it loses focus.
+
+To build your queue without interrupting playback, select a result and choose **Play next** (**Shift+Enter**) or **Add to queue** (**Ctrl+Enter**). Queue additions keep the overlay open and show confirmation; failures remain visible for retry. Listening-room locks and remote host permissions still apply.
 
 You can also open it from the tray or **Keyboard shortcuts → Try quick search**. Change its key combination on the Keyboard shortcuts page.
 
@@ -314,7 +320,7 @@ The Android workflow builds an arm64 feasibility APK as an artifact. Tagged rele
 
 Open **Lyrics** from Preferences or the tray and look up the current song. Lyrics come from [LRCLIB](https://lrclib.net/docs). Timed lyrics highlight the current line when synchronized text is available; plain lyrics are used when supplied instead.
 
-Lookup sends the track title, artist, and rounded duration to LRCLIB. Availability and version matching depend on its catalog. Automatic lookup and caching are not implemented yet.
+Lookup sends the track title, artist, and rounded duration to LRCLIB. Availability and version matching depend on its catalog. Enable **Automatically find lyrics** in the lyrics window to look up each new song while that window is open. It defaults off when the panel is created. Up to 20 successful lookups are cached in that window's memory, and **Refresh lyrics** requests a fresh result. Lyrics follow the selected local or remote playback device; advertisements do not trigger lookups.
 
 ## Privacy and account data
 
@@ -325,7 +331,7 @@ Lookup sends the track title, artist, and rounded duration to LRCLIB. Availabili
 | Account display name | Shown in the local menu. The catalog bridge returns the active name without the account email.                                                                                                         |
 | Discord activity     | Sent through local Discord IPC when configured and permitted by presence preferences.                                                                                                                  |
 | Listening rooms      | Share track identifiers, timing, membership, and display names with the relay/participants. The operator can observe connection metadata.                                                              |
-| Lyrics               | Send title, artist, and duration to LRCLIB when you request a lookup.                                                                                                                                  |
+| Lyrics               | Send title, artist, and duration to LRCLIB on manual lookup, or for new songs while automatic lookup is enabled in the lyrics window. Cached results stay in that window's memory.                     |
 | Virtual microphone   | Captures the local playback WebView process and, only when enabled, the selected physical microphone. Sends mixed PCM to the selected Windows virtual cable; the room/control relay receives no audio. |
 | Remote/group control | Shares host playback state, public catalog metadata and authorized commands with approved controllers. Pairing credentials and relay visibility are documented in the shared-control guide.            |
 
@@ -532,11 +538,10 @@ Windows source builds provide virtual-cable routing with optional mic mixing. In
 
 Next priorities focus on everyday listening:
 
-- **More queue entry points**, including Play next / Add to queue from popup search.
 - **Session restoration** for queue, position, shuffle, and repeat.
 - **Library and playlist editing**, including save/unsave and adding/removing tracks.
 - **Sleep timer** and stop after the current song.
-- **Automatic lyrics** lookup, caching, and better version matching.
+- **Better lyrics version matching** and optional durable caching.
 - **Faster queue editing**, shortcut recording/conflict feedback, and pasted music links.
 - **Virtual-mic hardware acceptance**, optional music ducking/monitoring, and a future driver-distribution decision.
 - **Android native library acceptance and authenticated playback design**, followed by physical-device background-hosting acceptance.

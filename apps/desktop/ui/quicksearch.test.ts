@@ -166,3 +166,69 @@ it('respects the listening-party host lock', async () => {
   );
   expect(call).not.toHaveBeenCalledWith('play_items', expect.anything());
 });
+
+it.each(['next', 'end'] as const)(
+  'queues the selected song at %s without hiding the popup or starting playback',
+  async (placement) => {
+    const input = type('Test');
+    await vi.waitFor(() =>
+      expect(document.querySelectorAll('[role="option"]')).toHaveLength(2),
+    );
+    key(input, 'ArrowDown');
+    flushSync(() =>
+      input.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          key: 'Enter',
+          bubbles: true,
+          shiftKey: placement === 'next',
+          ctrlKey: placement === 'end',
+        }),
+      ),
+    );
+    await vi.waitFor(() =>
+      expect(call).toHaveBeenCalledWith('queue_track', {
+        track: {
+          video_id: second.video_id,
+          title: second.title,
+          artist: second.artist,
+          artwork: '',
+        },
+        placement,
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(document.querySelector('[role="status"]')?.textContent).toContain(
+        second.title,
+      ),
+    );
+    expect(call).not.toHaveBeenCalledWith('play_items', expect.anything());
+    expect(windowMock.hide).not.toHaveBeenCalled();
+  },
+);
+
+it('keeps queue failures visible and retries from the action buttons', async () => {
+  type('Test');
+  await vi.waitFor(() =>
+    expect(document.querySelectorAll('[role="option"]')).toHaveLength(2),
+  );
+  const button = [
+    ...document.querySelectorAll<HTMLButtonElement>('.quick-actions button'),
+  ].find((button) => button.textContent === 'Add to queue')!;
+  vi.mocked(call).mockRejectedValueOnce(
+    new Error('Host denied queue permission'),
+  );
+  flushSync(() => button.click());
+  await vi.waitFor(() =>
+    expect(document.querySelector('[role="alert"]')?.textContent).toContain(
+      'Host denied',
+    ),
+  );
+  flushSync(() => button.click());
+  await vi.waitFor(() =>
+    expect(document.querySelector('[role="status"]')?.textContent).toContain(
+      'added to queue',
+    ),
+  );
+  expect(document.querySelector('[role="alert"]')).toBeNull();
+  expect(windowMock.hide).not.toHaveBeenCalled();
+});

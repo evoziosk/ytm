@@ -37,7 +37,49 @@ beforeEach(() => {
 afterEach(async () => {
   if (component) await unmount(component);
   document.body.innerHTML = '';
+  vi.unstubAllGlobals();
 });
+
+it.each([false, true])(
+  'copies the current song link and reports clipboard failure: %s',
+  async (fails) => {
+    const saved = structuredClone(initial);
+    saved.player.track = {
+      video_id: 'dQw4w9WgXcQ',
+      title: 'Current song',
+      artist: 'Artist',
+      album: '',
+      artwork: '',
+      playlist_id: 'PRIVATE',
+    };
+    vi.mocked(snapshot).mockResolvedValue(saved);
+    const writeText = fails
+      ? vi.fn().mockRejectedValue(new Error('Clipboard unavailable'))
+      : vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('navigator', { userAgent: '', clipboard: { writeText } });
+    component = mount(App, { target: document.body });
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector('[aria-label="Copy song link"]'),
+      ).not.toBeNull(),
+    );
+    document
+      .querySelector<HTMLButtonElement>('[aria-label="Copy song link"]')!
+      .click();
+    await vi.waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith(
+        'https://music.youtube.com/watch?v=dQw4w9WgXcQ',
+      ),
+    );
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector(
+          fails ? '[role="alert"]' : '.toast[role="status"]',
+        )?.textContent,
+      ).toContain(fails ? 'Clipboard unavailable' : 'Song link copied'),
+    );
+  },
+);
 
 const navigate = (label: string) =>
   flushSync(() =>
