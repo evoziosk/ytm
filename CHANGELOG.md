@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.2 — 2026-10-27
 
 - Match the application icon to the plum/rose interface and regenerate desktop and Android launcher assets.
 - Add Play next and Add to queue to popup search, with Shift+Enter and Ctrl+Enter shortcuts, confirmation, and retryable errors.

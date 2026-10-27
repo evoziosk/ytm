@@ -5,7 +5,7 @@ controller flows, together with the existing bridge, protocol, relay, and Rust
 tests. Google sign-in and Premium playback were previously confirmed by the
 user; they were not repeated against a live account during this audit.
 
-## Implemented in the working tree
+## Implemented in 0.5.2
 
 The application icon now uses the interface's rose/plum gradient and light
 waveform bars. Desktop PNG, Windows ICO, macOS ICNS, and Android launcher assets

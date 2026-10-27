@@ -4,7 +4,7 @@
 
 YouTube Music runs in a background playback session. Browsing and playback controls live in the app's own interface, while your Google account and eligible YouTube Music Premium benefits remain part of your YouTube session.
 
-**Version:** 0.5.1 · **Primary platform:** Windows x64 · **License:** [MIT](LICENSE) · **Built with:** Tauri 2, Rust, Svelte 5, and Cloudflare Durable Objects
+**Version:** 0.5.2 · **Primary platform:** Windows x64 · **License:** [MIT](LICENSE) · **Built with:** Tauri 2, Rust, Svelte 5, and Cloudflare Durable Objects
 
 Remote and group control now share one host player over LAN or the Cloudflare relay, with browser and installed controllers, approval, permissions and revocable device pairing. The full-app Android feasibility build includes the native playback service; physical-device acceptance is still required before Android hosting is considered supported. See [shared control, deployment and Android validation](docs/shared-control.md).
 
@@ -12,7 +12,7 @@ Remote and group control now share one host player over LAN or the Cloudflare re
 
 Version 0.5.0 introduces the plum/rose translucent theme, a desktop discovery layout, redesigned panels, global header search, and clickable Up next tracks on Home. Android adds an experimental native Google library connection for read-only YouTube playlists; see the [release notes](docs/releases/v0.5.0.md) and [Android setup](docs/android-google-sign-in.md). The Windows [virtual microphone preview](docs/virtual-microphone.md) remains available.
 
-The current source also includes a matching plum/rose app icon, popup queue actions, opt-in automatic lyrics with a temporary cache, song-link copying, and lyrics/remote-permission fixes. These changes are **unreleased**; build from source to use them. See the [changelog](CHANGELOG.md#unreleased) and [feature audit](docs/feature-audit.md).
+Version 0.5.2 adds a matching plum/rose app icon, popup queue actions, opt-in automatic lyrics with a temporary cache, song-link copying, and lyrics/remote-permission fixes. See the [release notes](docs/releases/v0.5.2.md) and [feature audit](docs/feature-audit.md).
 
 [![CI](https://github.com/evoziosk/ytm/actions/workflows/ci.yml/badge.svg)](https://github.com/evoziosk/ytm/actions/workflows/ci.yml)
 
